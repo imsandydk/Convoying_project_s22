@@ -27,14 +27,24 @@
     <scenario name="FollowLeadingVehicleWithObstacle_4" type="FollowLeadingVehicleWithObstacle" town="Town03">
         <ego_vehicle x="150" y="193.2" z="3" yaw="180" model="vehicle.lincoln.mkz_2017" />
     </scenario>	
+
     <scenario name="FollowLeadingVehicle_5" type="FollowLeadingVehicle" town="Town04">
-	<ego_vehicle x="-422.6455078125" y="31.686376571655273" z="2" yaw="0" model="vehicle.lincoln.mkz_2017" rolename="hero"/>
-	<!-- <ego_vehicle x="280" y="-191" z="0.319" yaw="0" model="vehicle.lincoln.mkz_2017" rolename="hero"/> -->
+	<ego_vehicle x="-350.6455078125" y="26.686376571655273" z="2" yaw="0" model="vehicle.lincoln.mkz_2017" rolename="hero"/>
+    <ego_vehicle x="-355.6455078125" y="26.686376571655273" z="2" yaw="0" model="vehicle.lincoln.mkz_2017" rolename="hero1"/>
+    <ego_vehicle x="-360.6455078125" y="26.686376571655273" z="2" yaw="0" model="vehicle.lincoln.mkz_2017" rolename="hero2"/>
+    <ego_vehicle x="-365.6455078125" y="26.686376571655273" z="2" yaw="0" model="vehicle.lincoln.mkz_2017" rolename="hero3"/>
+    
+	<!-- <ego_vehicle x="-93" y="41" z="9" yaw="150" model="vehicle.lincoln.mkz_2017" rolename="hero"/> -->
+    
+    <!-- <ego_vehicle x="291" y="-188" z="0.319" yaw="180" model="vehicle.lincoln.mkz_2017" rolename="hero"/> -->
 	<weather cloudiness="0" precipitation="0" precipitation_deposits="0" wind_intensity="0" sun_azimuth_angle="0" sun_altitude_angle="75" />
     </scenario>
+
     <scenario name="FollowLeadingVehicleWithObstacle_5" type="FollowLeadingVehicleWithObstacle" town="Town04">
-        <ego_vehicle x="291" y="-188" z="0.263" yaw="180" model="vehicle.lincoln.mkz_2017" rolename="hero"/>
-	<ego_vehicle x="-337  " y="435.8" z="5.5" yaw="0" model="vehicle.lincoln.mkz_2017" />
+    <ego_vehicle x="-422.6455078125" y="31.686376571655273" z="2" yaw="0" model="vehicle.lincoln.mkz_2017" rolename="hero"/>
+    
+        <!-- <ego_vehicle x="291" y="-188" z="0.263" yaw="180" model="vehicle.lincoln.mkz_2017" rolename="hero"/> -->
+	<!-- <ego_vehicle x="-337  " y="435.8" z="5.5" yaw="0" model="vehicle.lincoln.mkz_2017" /> -->
 	<weather cloudiness="0" precipitation="0" precipitation_deposits="0" wind_intensity="0" sun_azimuth_angle="0" sun_altitude_angle="75" />
     </scenario>
     <scenario name="FollowLeadingVehicle_6" type="FollowLeadingVehicle" town="Town04">

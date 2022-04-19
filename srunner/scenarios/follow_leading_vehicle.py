@@ -49,10 +49,10 @@ class FollowLeadingVehicle(BasicScenario):
     This is a single ego vehicle scenario
     """
 
-    timeout = 120            # Timeout of scenario in seconds
+    timeout = 300            # Timeout of scenario in seconds
 
     def __init__(self, world, ego_vehicles, config, randomize=False, debug_mode=False, criteria_enable=True,
-                 timeout=120):
+                 timeout=300):
         """
         Setup all relevant parameters and create scenario
 
@@ -77,11 +77,11 @@ class FollowLeadingVehicle(BasicScenario):
 
         # breakpoint()
         self._map = CarlaDataProvider.get_map()
-        self._first_vehicle_location = 25
-        self._first_vehicle_speed = 15
+        self._first_vehicle_location = 10
+        self._first_vehicle_speed = 21
         self._reference_waypoint = self._map.get_waypoint(config.trigger_points[0].location)
         self._other_actor_max_brake = 1.0
-        self._other_actor_stop_in_front_intersection = 20
+        self._other_actor_stop_in_front_intersection = 40
         self._other_actor_transform = None
         # Timeout of scenario in seconds
         self.timeout = timeout
@@ -206,7 +206,7 @@ class FollowLeadingVehicleWithObstacle(BasicScenario):
     This is a single ego vehicle scenario
     """
 
-    timeout = 120            # Timeout of scenario in seconds
+    timeout = 300            # Timeout of scenario in seconds
 
     def __init__(self, world, ego_vehicles, config, randomize=False, debug_mode=False, criteria_enable=True):
         """

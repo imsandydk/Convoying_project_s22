@@ -61,8 +61,6 @@ import datetime
 import logging
 import math
 import weakref
-import os
-
 
 # import behavioural_planner
 
@@ -186,8 +184,8 @@ class World(object):
             time.sleep(1)
             possible_vehicles = self.world.get_actors().filter('vehicle.*')
             for vehicle in possible_vehicles:
-                if vehicle.attributes['role_name'] == 'hero':
-                    print("Ego  1 vehicle found")
+                if vehicle.attributes['role_name'] == 'hero2':
+                    print("Ego vehicle 3 found")
                     self.player = vehicle
                     break
         
@@ -384,8 +382,9 @@ class KeyboardControl(object):
         # get lead vehicle location
         vehicles = self.world.world.get_actors().filter('vehicle.*')
         for vehicle in vehicles:
-            if vehicle.id != self.world.player.id:
-                leadVehicleLocation = vehicle
+            # if vehicle.id != self.world.player.id:
+                if vehicle.id == self.world.player.id-1:
+                    leadVehicleLocation = vehicle
 
         # if len(yaw_list)<50:
         #     DesiredinterVehicleDist = 5.0
@@ -411,6 +410,9 @@ class KeyboardControl(object):
         else:
             self._control.throttle = 0.0
             self._control.brake = min(self._control.brake + 2.0, 1)
+
+
+        
             # print("BRAKE")
             # print(self._control.brake)
 
@@ -418,7 +420,7 @@ class KeyboardControl(object):
 
         if velocity_diff < 0:
             self._control.brake = 1
-        
+
         # # self._control.throttle = self._control.throttle -  tanh(velocity_diff)
 
         # if (3.6 * math.sqrt(currentEgoVelocity.x**2 + currentEgoVelocity.y**2 + currentEgoVelocity.z**2)) > 80:
@@ -1173,9 +1175,4 @@ def main():
 
 if __name__ == '__main__':
 
-
-     
-    
     main()
-    
-
