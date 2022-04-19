@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<scenarios>
+    <scenario name="Convoy" type="FollowLeadingVehicle" town="Town06">
+        <ego_vehicle x="-130.2  " y="250.8" z="0"  yaw="0" model="vehicle.lincoln.mkz_2017" rolename="hero"/>
+        <!-- <ego_vehicle x="-336.2  " y="435.8" z="0" yaw="0" model="vehicle.tesla.model3" rolename="hero2"/> -->
+        <weather cloudiness="0" precipitation="0" precipitation_deposits="0" wind_intensity="0" sun_azimuth_angle="40" sun_altitude_angle="15" />
+    </scenario>
+    <scenario name="Convoy2" type="FollowLeadingVehicle" town="Town04">
+        <!-- <ego_vehicle x="318.7  " y="17.4" z="0.4" yaw="0" model="vehicle.lincoln.mkz_2017" rolename="hero"/> -->
+        <ego_vehicle x="-336.2  " y="435.8" z="0" yaw="0" model="vehicle.tesla.model3" rolename="hero2"/>
+        <weather cloudiness="0" precipitation="0" precipitation_deposits="0" wind_intensity="0" sun_azimuth_angle="40" sun_altitude_angle="15" />
+    </scenario>
+    <scenario name="Convoy_2" type="FollowLeadingVehicleWithObstacle" town="Town02">
+        <ego_vehicle x="137" y="105.3" z="0.4" yaw="180" model="vehicle.lincoln.mkz_2017" />
+    </scenario>
+    <scenario name="Convoy3" type="FollowLeadingVehicle" town="Town04">
+        <ego_vehicle x="-10" y="-204.6" z="0" yaw="90" model="vehicle.lincoln.mkz_2017" />
+        <weather cloudiness="0" precipitation="0" precipitation_deposits="0" wind_intensity="0" sun_azimuth_angle="0" sun_altitude_angle="75" />
+    </scenario>
+    <scenario name="Convoy4" type="FollowLeadingVehicle" town="Town04">
+        <ego_vehicle x="-9.3" y="-218.8" z="0" yaw="-18" model="vehicle.lincoln.mkz_2017" />
+        <weather cloudiness="0" precipitation="0" precipitation_deposits="0" wind_intensity="0" sun_azimuth_angle="0" sun_altitude_angle="75" />
+    </scenario>
+    <scenario name="Convoy5" type="FollowLeadingVehicle" town="Town04">
+        <ego_vehicle x="-430.1" y="30.4" z="0" yaw="-18" model="vehicle.lincoln.mkz_2017" />
+        <weather cloudiness="0" precipitation="0" precipitation_deposits="0" wind_intensity="0" sun_azimuth_angle="0" sun_altitude_angle="75" />
+    </scenario>
+    <scenario name="Convoy6" type="FollowLeadingVehicle" town="Town05">
+        <ego_vehicle x="-160" y="-190" z="11" yaw="1" model="vehicle.lincoln.mkz_2017" />
+        <weather cloudiness="0" precipitation="0" precipitation_deposits="0" wind_intensity="0" sun_azimuth_angle="0" sun_altitude_angle="75" />
+    </scenario>
+</scenarios>
