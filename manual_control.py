@@ -43,8 +43,6 @@ Use ARROWS or WASD keys for control.
 """
 
 from __future__ import print_function
-from audioop import cross
-from urllib import robotparser
 
 # ==============================================================================
 # -- imports -------------------------------------------------------------------
@@ -52,7 +50,7 @@ from urllib import robotparser
 
 import carla
 from carla import ColorConverter as cc
-
+from agents.navigation.controller import PIDLateralController, PIDLongitudinalController
 import argparse
 import os
 import sys
@@ -62,7 +60,8 @@ import datetime
 import logging
 import math
 import weakref
-from agents.navigation.controller import PIDLateralController
+import copy
+
 
 try:
     import pygame
@@ -115,11 +114,6 @@ def get_actor_display_name(actor, truncate=250):
 # -- World ---------------------------------------------------------------------
 # ==============================================================================
 
-
-yaw_list = []
-steering_map = {}
-
-
 class World(object):
 
     restarted = False
@@ -145,7 +139,7 @@ class World(object):
         self.world.on_tick(hud.on_world_tick)
         self.recording_enabled = False
         self.recording_start = 0
-    
+
     def restart(self):
 
         if self.restarted:
@@ -231,14 +225,10 @@ class KeyboardControl(object):
         world.player.set_autopilot(self._autopilot_enabled)
         world.player.set_light_state(self._lights)
         world.hud.notification("Press 'H' or '?' for help.", seconds=4.0)
+        self.iter = 0
+        self.wayPoints = []
         self.world= world
         self._map = self.world.world.get_map()
-        self.wayPointBuffer = []
-        self.wayPointBuffer2 = []
-        self.iter = 0
-        self.initThrottleFlag = 0
-        self._Kcte = 0.5
-        self._conv_rad_to_steer  = 180.0 / 70.0 / np.pi
         self._controller = PIDLateralController(self.world.player, K_P=1.0, K_I=0.0, K_D=0.0)
 
     def parse_events(self, client, world, clock):
@@ -360,156 +350,99 @@ class KeyboardControl(object):
 
     def _parse_vehicle_keys(self, keys, milliseconds):
 
-        # get the current vehicle location
 
+
+        DesiredinterVehicleDist = 20.0
+        MAX_SPEED_ALLOWED = 65
+
+        follow_vehicle = self.world.player
         currentEgoLocation = self.world.player.get_transform()
-        currentEgoVelocity = self.world.player.get_velocity().x
+        currentEgoVelocity = self.world.player.get_velocity()
         
         # print("Current Location X: "+str(currentEgoLocation.location.x)+"|Y: "+str(currentEgoLocation.location.y))
         
-        # get lead vehicle location
+        
+        #get lead vehicle location
         vehicles = self.world.world.get_actors().filter('vehicle.*')
         for vehicle in vehicles:
-            if vehicle.id != self.world.player.id:
+            print(vehicle.id,vehicle.type_id,self.world.player.id)
+            if vehicle.id == self.world.player.id+4:
+                
                 leadVehicleLocation = vehicle
 
-        DesiredinterVehicleDist = 20.0
+
+
+        dist = np.sqrt((leadVehicleLocation.get_location().x - currentEgoLocation.location.x)**2 + (leadVehicleLocation.get_location().y - currentEgoLocation.location.y)**2+(leadVehicleLocation.get_location().z - currentEgoLocation.location.z)**2)
+        # print("intervehicleDist : "+str(dist))
+        # print("EgoVelocity: "+str(currentEgoVelocity.x))
+        # print("LeadVelocity: "+str(leadVehicleLocation.get_velocity().x))
+        
+        # print(dist)
+
+        # if len(yaw_list)<50:
+        #     self._control.throttle = 0.5
+        # else:
+        if (dist > DesiredinterVehicleDist or np.abs(currentEgoVelocity.x) < np.abs(leadVehicleLocation.get_velocity().x)):
+            self._control.throttle =  min(self._control.throttle + 0.002, 1)
+            self._control.brake = 0.0
+        else:
+            self._control.throttle = 0.0
+            self._control.brake = min(self._control.brake + 2.0, 1)
+            # print("BRAKE")
+            # print(self._control.brake)
+
+        velocity_diff = MAX_SPEED_ALLOWED-(3.6 * math.sqrt(currentEgoVelocity.x**2 + currentEgoVelocity.y**2 + currentEgoVelocity.z**2))
+
+        if velocity_diff < 0:
+            self._control.brake = 1
+
+        #get current vehicle location
+
+        currentEgoLocation = self.world.player
+        print(currentEgoLocation.id)
+        currentEgoVelocity = self.world.player.get_velocity().x
+
+        
         
 
         leadVehicleLocationX = leadVehicleLocation.get_transform().location.x
         leadVehicleLocationY = leadVehicleLocation.get_transform().location.y
-
-
-        LeadVelocity = leadVehicleLocation.get_velocity().x
-
-        print("Lead Vehicle Location X: "+str(leadVehicleLocationX)+"|Y: "+str(leadVehicleLocationY))
-        print("Lead Vehicle Velocity: "+str(LeadVelocity))
-        print("Ego Location X: "+str(currentEgoLocation.location.x)+"|Y: "+str(currentEgoLocation.location.y))
         
-        waypoint = leadVehicleLocation
-        egoLocation = self.world.player
+        waypoint = self._map.get_waypoint(leadVehicleLocation.get_location())
+        egoWaypoint = self._map.get_waypoint(currentEgoLocation.get_location())
         
-        egoYaw = math.radians(currentEgoLocation.rotation.yaw)
-        print("Ego Yaw: "+str(egoYaw))
-        # print("Ego Yaw: "+str(currentEgoLocation.rotation.yaw))
+        if self.iter == 0:
+            self.wayPoints.append(waypoint)
+        self.iter = self.iter + 1
 
-        self.wayPointBuffer.append(waypoint)
-        if (LeadVelocity <=0.2):
-            self._control.throttle = 0.3
-        else:
-            if (len(self.wayPointBuffer) < 2):
-                self.wayPointBuffer.append(egoLocation)
-        
-           
-
-            
-            if self._euclideanDist(waypoint, self.wayPointBuffer[-1]) >= 1.0:
-                print("Appending Waypoint")
-                self.wayPointBuffer.append(waypoint)
-                self._control.throttle = 0.0
-                self._control.brake = 0.0
-            else:
-                print("Not appending waypoint")
-                self._control.throttle = 0.0
-
-            if len(self.wayPointBuffer) > 10:
-                self.wayPointBuffer.pop(0)
-                steer = self._controller.run_step(self._map.get_waypoint(self.wayPointBuffer[-1].get_location()))
-                self._control.steer = steer
-                print("Final Steer output: "+str(steer))
-        
-            if (self._euclideanDist(leadVehicleLocation, egoLocation) > DesiredinterVehicleDist) and (LeadVelocity > 0.0):
-                self._control.throttle = 0.5
-                self._control.brake = 0.0
-            elif (self.initThrottleFlag == 0):
-                self._control.throttle = 0.1
-                self._control.brake = 0.2
+        # if leadVehicleLocation.get_velocity().x <= 0:
+        #     self._control.throttle = 0.3
                 
+        # append waypoints only if they are greater than a set threshold distance       
+        if (self._euclideanDist(self.wayPoints[-1], waypoint) > 5.0):
+            self.wayPoints.append(waypoint)
         
+        # steer
+        self._control.steer = self._controller.run_step(self.wayPoints[0])
 
-            print("Waypoint Buffer: "+str(self.wayPointBuffer))
-            for i in range(len(self.wayPointBuffer)):
-                print(str(i) + str("|") + str(self.wayPointBuffer[i].get_location().x) + str(",") + str(self.wayPointBuffer[i].get_location().y))
-            
-            print("Inter vehicle distance: "+str(self._euclideanDist(leadVehicleLocation, egoLocation)))
-            print("Last waypoint: "+str(self.wayPointBuffer[-1].get_location()))
-            print("CurrLeadLocation: "+str(leadVehicleLocation.get_location()))
-            print("dist betwwen last point and currEgo : "+str(self._euclideanDist(self.wayPointBuffer[-1], waypoint)))
+        # # throttle
+        # if (self._euclideanDist(waypoint, egoWaypoint) > 20.0):
+        #     self._control.throttle = 0.6
+        #     self._control.brake = 0.0
+        # else:
+        #     self._control.throttle = 0.1
+        #     self._control.brake = 0.2
+
+        if (self._euclideanDist(self.wayPoints[0], egoWaypoint) <= 1.0):
+            self.wayPoints.pop(0)
+
+        for i in range(len(self.wayPoints)):
+            print(str(i) + str("|") + str(self.wayPoints[i].transform.location.x) + str(",") + str(self.wayPoints[i].transform.location.y))
 
     def _euclideanDist(self, waypoint1, waypoint2):
-        return np.sqrt((waypoint2.get_transform().location.x - waypoint1.get_transform().location.x)**2 + (waypoint2.get_transform().location.y - waypoint1.get_transform().location.y)**2)
+        return np.sqrt((waypoint2.transform.location.x - waypoint1.transform.location.x)**2 + (waypoint2.transform.location.y - waypoint1.transform.location.y)**2)
         
-    def _stanley_control(self, egoLocation, yaw, v):
-        v1 = [self.wayPointBuffer[0][0] - egoLocation[0], self.wayPointBuffer[0][1] - egoLocation[1]]
-        v2 = [np.cos(yaw), np.sin(yaw)]
-        heading_error = self.get_heading_error(yaw)
-        print("Heading Error: "+str(heading_error))
-        cte_error = self.get_steering_direction(v1, v2)*self.get_cte_heading_error(v, egoLocation)
-        steering =  heading_error + cte_error
-        return steering
-    
-    def get_heading_error(self, yaw):
-        waypoint_delta_x = self.wayPointBuffer[1][0] - self.wayPointBuffer[0][0]
-        waypoint_delta_y = self.wayPointBuffer[1][1] - self.wayPointBuffer[0][1]
-        waypoint_heading = np.arctan(waypoint_delta_y/waypoint_delta_x)
-        heading_error_mod = divmod((waypoint_heading - yaw), np.pi)[1]
-        if heading_error_mod > np.pi/2 and heading_error_mod < np.pi:
-            heading_error_mod -= np.pi
-        return heading_error_mod
-    
-    def get_steering_direction(self, v1, v2):
-        cross_prod = v1[0]*v2[1] - v1[1]*v2[0]
-        if cross_prod >= 0 :
-            return -1
-        return 1
 
-    def get_cte_heading_error(self, v, egoLocation):
-        proportional_cte_error = self._Kcte * self._euclideanDist(self.wayPointBuffer[0], egoLocation)
-        cte_heading_error = np.arctan(proportional_cte_error/v)
-        cte_heading_error_mod = divmod(cte_heading_error, np.pi)[1]
-        if cte_heading_error_mod > np.pi/2 and cte_heading_error_mod < np.pi:
-            cte_heading_error_mod -= np.pi
-        print("CTE Heading Error: "+str(cte_heading_error_mod))
-        return cte_heading_error_mod
-    
-    def _stanleyControl1(self, egoLocation, yaw, v):
-        ke = 0.3
-        kv = 10
-        x = egoLocation[0]
-        y = egoLocation[1]
-        yaw_path = np.arctan2(self.wayPointBuffer[-1][1]-self.wayPointBuffer[0][1], self.wayPointBuffer[-1][0]-self.wayPointBuffer[0][0])
-        yaw_diff = yaw_path - yaw
-        if yaw_diff > np.pi:
-            yaw_diff -= 2*np.pi
-        if yaw_diff < -np.pi:
-            yaw_diff += 2*np.pi
-        
-        current_xy = np.array([x, y])
-        crosstrack_error = np.min(np.sum((current_xy - np.array(self.wayPointBuffer)[:, :2])**2, axis=1))
-        yaw_cross_track = np.arctan2(y-self.wayPointBuffer[0][1], x-self.wayPointBuffer[0][0])
-        yaw_path2ct = yaw_path - yaw_cross_track
-        
-        if yaw_path2ct > np.pi:
-            yaw_path2ct -= 2*np.pi
-        if yaw_path2ct < -np.pi:
-            yaw_path2ct += 2*np.pi
-        
-        if yaw_path2ct > 0:
-            crosstrack_error = abs(crosstrack_error)
-        else:
-            crosstrack_error = - abs(crosstrack_error)
-
-        yaw_diff_crosstrack = np.arctan(ke * crosstrack_error / (kv + v))
-
-        steer_expect = yaw_diff + yaw_diff_crosstrack
-        if steer_expect > np.pi:
-            steer_expect -= 2 * np.pi
-        if steer_expect < - np.pi:
-            steer_expect += 2 * np.pi
-        steer_expect = min(1.22, steer_expect)
-        steer_expect = max(-1.22, steer_expect)
-
-        return steer_expect
 
     @staticmethod
     def _is_quit_shortcut(key):
@@ -596,28 +529,7 @@ class HUD(object):
         if len(vehicles) > 1:
             self._info_text += ['Nearby vehicles:']
             distance = lambda l: math.sqrt((l.x - t.location.x)**2 + (l.y - t.location.y)**2 + (l.z - t.location.z)**2)
-
-            
-
-
-            for x in vehicles:
-                
-                if x.id != world.player.id:
-                    # print("LEAD"+str(x.get_transform().rotation.yaw))
-                    vehicles = [(distance(x.get_location()), x)]
-                    
-
-            # for i,lead in vehicles:
-            #     if i==0:
-            #         print("There")
-            #         print(lead.get_loactions())
-
-
-
-            
-            # vehicles = [(distance(x.get_location()), x) for x in vehicles if x.id != world.player.id]
-
-
+            vehicles = [(distance(x.get_location()), x) for x in vehicles if x.id != world.player.id]
             for d, vehicle in sorted(vehicles, key=lambda vehicles: vehicles[0]):
                 if d > 200.0:
                     break
@@ -1097,17 +1009,6 @@ def game_loop(args):
             world.destroy()
 
         pygame.quit()
-
-
-# ==============================================================================
-# -- API() --------------------------------------------------------------------
-# ==============================================================================
-
-
-
-
-
-
 
 
 # ==============================================================================

@@ -43,7 +43,6 @@ Use ARROWS or WASD keys for control.
 """
 
 from __future__ import print_function
-from cmath import tanh
 
 # ==============================================================================
 # -- imports -------------------------------------------------------------------
@@ -51,7 +50,7 @@ from cmath import tanh
 
 import carla
 from carla import ColorConverter as cc
-
+from agents.navigation.controller import PIDLateralController, PIDLongitudinalController
 import argparse
 import os
 import sys
@@ -61,8 +60,8 @@ import datetime
 import logging
 import math
 import weakref
+import copy
 
-# import behavioural_planner
 
 try:
     import pygame
@@ -101,24 +100,7 @@ try:
 except ImportError:
     raise RuntimeError('cannot import numpy, make sure numpy package is installed')
 
-from csv import writer
 
-# List=[6,'William',5532,1,'UAE']
-  
-# # Open our existing CSV file in append mode
-# # Create a file object for this file
-# with open('event.csv', 'a') as f_object:
-  
-#     # Pass this file object to csv.writer()
-#     # and get a writer object
-#     writer_object = writer(f_object)
-  
-#     # Pass the list as an argument into
-#     # the writerow()
-#     writer_object.writerow(List)
-  
-#     #Close the file object
-#     f_object.close()
 # ==============================================================================
 # -- Global functions ----------------------------------------------------------
 # ==============================================================================
@@ -131,13 +113,6 @@ def get_actor_display_name(actor, truncate=250):
 # ==============================================================================
 # -- World ---------------------------------------------------------------------
 # ==============================================================================
-
-
-yaw_list = []
-steering_map = {}
-
-WAYPOINTS_LIST = []
-
 
 class World(object):
 
@@ -164,7 +139,7 @@ class World(object):
         self.world.on_tick(hud.on_world_tick)
         self.recording_enabled = False
         self.recording_start = 0
-    
+
     def restart(self):
 
         if self.restarted:
@@ -250,7 +225,11 @@ class KeyboardControl(object):
         world.player.set_autopilot(self._autopilot_enabled)
         world.player.set_light_state(self._lights)
         world.hud.notification("Press 'H' or '?' for help.", seconds=4.0)
+        self.iter = 0
+        self.wayPoints = []
         self.world= world
+        self._map = self.world.world.get_map()
+        self._controller = PIDLateralController(self.world.player, K_P=1.0, K_I=0.0, K_D=0.0)
 
     def parse_events(self, client, world, clock):
         current_lights = self._lights
@@ -371,26 +350,25 @@ class KeyboardControl(object):
 
     def _parse_vehicle_keys(self, keys, milliseconds):
 
-        # get the current vehicle location
-        
+
+
+        DesiredinterVehicleDist = 20.0
+        MAX_SPEED_ALLOWED = 65
+
         follow_vehicle = self.world.player
         currentEgoLocation = self.world.player.get_transform()
         currentEgoVelocity = self.world.player.get_velocity()
         
         # print("Current Location X: "+str(currentEgoLocation.location.x)+"|Y: "+str(currentEgoLocation.location.y))
         
-        # get lead vehicle location
+        
+        #get lead vehicle location
         vehicles = self.world.world.get_actors().filter('vehicle.*')
         for vehicle in vehicles:
-            # if vehicle.id != self.world.player.id:
-                if vehicle.id == self.world.player.id-1:
-                    leadVehicleLocation = vehicle
-
-        # if len(yaw_list)<50:
-        #     DesiredinterVehicleDist = 5.0
-        # else:
-        DesiredinterVehicleDist = 20.0
-        MAX_SPEED_ALLOWED = 80.0
+            # print(vehicle.id,vehicle.type_id,self.world.player.id)
+            if vehicle.id == self.world.player.id-1:
+                
+                leadVehicleLocation = vehicle
 
 
 
@@ -410,9 +388,6 @@ class KeyboardControl(object):
         else:
             self._control.throttle = 0.0
             self._control.brake = min(self._control.brake + 2.0, 1)
-
-
-        
             # print("BRAKE")
             # print(self._control.brake)
 
@@ -421,99 +396,57 @@ class KeyboardControl(object):
         if velocity_diff < 0:
             self._control.brake = 1
 
-        # # self._control.throttle = self._control.throttle -  tanh(velocity_diff)
+        #get current vehicle location
 
-        # if (3.6 * math.sqrt(currentEgoVelocity.x**2 + currentEgoVelocity.y**2 + currentEgoVelocity.z**2)) > 80:
-        #         # self._control.throttle = 0.5
-        #         print("OVERSPEEDING...BREAKING")
-        #         self._control.throttle = self._control.throttle/2
-        #         # self._control.brake = 1
+        currentEgoLocation = self.world.player
+        print(currentEgoLocation.id)
+        currentEgoVelocity = self.world.player.get_velocity().x
 
-        # if keys[K_UP] or keys[K_w]:
-        #     self._control.throttle = min(self._control.throttle + 0.1, 1.00)
+        
+        
+
+        leadVehicleLocationX = leadVehicleLocation.get_transform().location.x
+        leadVehicleLocationY = leadVehicleLocation.get_transform().location.y
+        
+        waypoint = self._map.get_waypoint(leadVehicleLocation.get_location())
+        egoWaypoint = self._map.get_waypoint(currentEgoLocation.get_location())
+        
+        if self.iter == 0:
+            self.wayPoints.append(waypoint)
+        self.iter = self.iter + 1
+
+        # if leadVehicleLocation.get_velocity().x <= 0:
+        #     self._control.throttle = 0.3
+                
+        # append waypoints only if they are greater than a set threshold distance       
+        if (self._euclideanDist(self.wayPoints[-1], waypoint) > 5.0):
+            self.wayPoints.append(waypoint)
+        
+        # steer
+        self._control.steer = self._controller.run_step(self.wayPoints[0])
+
+        # # throttle
+        # if (self._euclideanDist(waypoint, egoWaypoint) > 20.0):
+        #     self._control.throttle = 0.6
+        #     self._control.brake = 0.0
         # else:
         #     self._control.throttle = 0.1
+        #     self._control.brake = 0.2
 
-        # if keys[K_DOWN] or keys[K_s]:
-        #     self._control.brake = min(self._control.brake + 0.2, 1)
-        # else:
-        #     self._control.brake = 0
+        if (self._euclideanDist(self.wayPoints[0], egoWaypoint) <= 1.0):
+            self.wayPoints.pop(0)
 
-        steer_increment = 5e-4 * milliseconds
-        if keys[K_LEFT] or keys[K_a]:
-            if self._steer_cache > 0:
-                self._steer_cache = 0
-            else:
-                self._steer_cache -= steer_increment
-        elif keys[K_RIGHT] or keys[K_d]:
-            if self._steer_cache < 0:
-                self._steer_cache = 0
-            else:
-                self._steer_cache += steer_increment
-        else:
-            self._steer_cache = 0.0
-        self._steer_cache = min(0.7, max(-0.7, self._steer_cache))
+        for i in range(len(self.wayPoints)):
+            print(str(i) + str("|") + str(self.wayPoints[i].transform.location.x) + str(",") + str(self.wayPoints[i].transform.location.y))
 
-        # vehicles = self.world.world.get_actors().filter('vehicle.*')
-        # print("YAW"+str(vehicles[1].get_transform().rotation))
+    def _euclideanDist(self, waypoint1, waypoint2):
+        return np.sqrt((waypoint2.transform.location.x - waypoint1.transform.location.x)**2 + (waypoint2.transform.location.y - waypoint1.transform.location.y)**2)
         
-        # # default = vehicles[1].get_transform().rotation.yaw
 
-        # print(currentEgoLocation.location,currentEgoLocation.rotation.yaw)
-        # print(rotation.yaw)
-        
-        # TO SAVE WAYPOINTS LIST TO CSV FILE
-
-        # print(leadVehicleLocation.get_transform().location.x,leadVehicleLocation.get_transform().location.y,leadVehicleLocation.get_transform().location.z)
-        # x = leadVehicleLocation.get_transform().location.x
-        # y = leadVehicleLocation.get_transform().location.y
-        # z = leadVehicleLocation.get_transform().location.z
-        # yaw = leadVehicleLocation.get_transform().rotation.yaw
-        # pitch = leadVehicleLocation.get_transform().rotation.pitch
-        # roll = leadVehicleLocation.get_transform().rotation.roll
-        # WAYPOINTS_LIST=[x,y,z,yaw,pitch,roll]
-        # print(WAYPOINTS_LIST)
-        # yaw_list.append(leadVehicleLocation.get_transform().rotation.yaw)
-
-        # with open('event.csv', 'a') as f_object:
-  
-        #     # Pass this file object to csv.writer()
-        #     # and get a writer object
-        #     writer_object = writer(f_object)
-        
-        #     # Pass the list as an argument into
-        #     # the writerow()
-        #     writer_object.writerow(WAYPOINTS_LIST)
-        
-        #     #Close the file object
-        #     f_object.close()
-        
-        # # if len(yaw_list)>100:
-        #     # print("PRESENT:"+str(yaw_list[-1])+"PREVIOUS"+str(yaw_list[-2])+"DELTA"+str(yaw_list[-1]-yaw_list[0]))
-
-        # # print(round(leadVehicleLocation.get_location().x),round(currentEgoLocation.location.x))
-        # steering_map[round(leadVehicleLocation.get_location().x)]=yaw_list[-1]-yaw_list[0]
-
-        # if len(yaw_list)>1:
-        #     if round(currentEgoLocation.location.x) in steering_map.keys():
-        #         print(steering_map[round(currentEgoLocation.location.x)])
-        #         # self._control.steer = steering_map[round(currentEgoLocation.location.x)]
-        #         self._control.steer = 0
-        #     else:
-        #         self._control.steer = 0 
-        # else:
-        #     self._control.steer = 0
-
-        # # print(yaw_list[-1]-yaw_list[-2])
-        self._control.steer = round(self._steer_cache, 1)
-
-        # print("FOLLOW"+str(round(self._steer_cache, 1)))
-        self._control.hand_brake = keys[K_SPACE]
 
     @staticmethod
     def _is_quit_shortcut(key):
         return (key == K_ESCAPE) or (key == K_q and pygame.key.get_mods() & KMOD_CTRL)
-
 
 
 # ==============================================================================
@@ -596,28 +529,7 @@ class HUD(object):
         if len(vehicles) > 1:
             self._info_text += ['Nearby vehicles:']
             distance = lambda l: math.sqrt((l.x - t.location.x)**2 + (l.y - t.location.y)**2 + (l.z - t.location.z)**2)
-
-            
-
-
-            for x in vehicles:
-                
-                if x.id != world.player.id:
-                    # print("LEAD"+str(x.get_transform().rotation.yaw))
-                    vehicles = [(distance(x.get_location()), x)]
-                    
-
-            # for i,lead in vehicles:
-            #     if i==0:
-            #         print("There")
-            #         print(lead.get_loactions())
-
-
-
-            
-            # vehicles = [(distance(x.get_location()), x) for x in vehicles if x.id != world.player.id]
-
-
+            vehicles = [(distance(x.get_location()), x) for x in vehicles if x.id != world.player.id]
             for d, vehicle in sorted(vehicles, key=lambda vehicles: vehicles[0]):
                 if d > 200.0:
                     break
@@ -1097,17 +1009,6 @@ def game_loop(args):
             world.destroy()
 
         pygame.quit()
-
-
-# ==============================================================================
-# -- API() --------------------------------------------------------------------
-# ==============================================================================
-
-
-
-
-
-
 
 
 # ==============================================================================

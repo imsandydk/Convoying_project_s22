@@ -22,6 +22,8 @@ import py_trees
 
 import carla
 
+
+
 from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
 from srunner.scenariomanager.scenarioatomics.atomic_behaviors import (ActorTransformSetter,
                                                                       ActorDestroy,
@@ -43,6 +45,8 @@ from srunner.tools.route_parser import RouteParser
 from srunner.tools.route_manipulation import interpolate_trajectory, interpolate_trajectory_modified
 
 
+
+
 class FollowLeadingVehicle(BasicScenario):
 
     """
@@ -53,7 +57,6 @@ class FollowLeadingVehicle(BasicScenario):
     """
 
     timeout = 1300            # Timeout of scenario in seconds
-
     def __init__(self, world, ego_vehicles, config, randomize=False, debug_mode=False, criteria_enable=True,
                  timeout=1300):
         """
@@ -61,7 +64,6 @@ class FollowLeadingVehicle(BasicScenario):
 
         If randomize is True, the scenario parameters are randomized
         """
-
         routes = "srunner/data/convoy.xml"
         scenario_file = "srunner/data/no_scenario.json"
         route_id = 0
@@ -78,8 +80,8 @@ class FollowLeadingVehicle(BasicScenario):
         self.trajectory_leadVehicle = inter_route
 
         self._map = CarlaDataProvider.get_map()
-        self._first_vehicle_location = 10
-        self._first_vehicle_speed = 6
+        self._first_vehicle_location = 20
+        self._first_vehicle_speed = 18
         self._reference_waypoint = self._map.get_waypoint(config.trigger_points[0].location)
         self._other_actor_max_brake = 1.0
         self._other_actor_stop_in_front_intersection = 20
