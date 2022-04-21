@@ -159,7 +159,7 @@ class World(object):
             time.sleep(1)
             possible_vehicles = self.world.get_actors().filter('vehicle.*')
             for vehicle in possible_vehicles:
-                if vehicle.attributes['role_name'] == 'hero':
+                if vehicle.attributes['role_name'] == 'hero4':
                     print("Ego vehicle found")
                     self.player = vehicle
                     break
@@ -365,8 +365,8 @@ class KeyboardControl(object):
         #get lead vehicle location
         vehicles = self.world.world.get_actors().filter('vehicle.*')
         for vehicle in vehicles:
-            print(vehicle.id,vehicle.type_id,self.world.player.id)
-            if vehicle.id == self.world.player.id+5:
+            # print(vehicle.id,vehicle.type_id,self.world.player.id)
+            if vehicle.id == self.world.player.id-1:
                 
                 leadVehicleLocation = vehicle
 

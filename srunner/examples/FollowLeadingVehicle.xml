@@ -33,6 +33,7 @@
     <ego_vehicle x="-355.6455078125" y="26.686376571655273" z="2" yaw="0" model="vehicle.lincoln.mkz_2017" rolename="hero1"/>
     <ego_vehicle x="-360.6455078125" y="26.686376571655273" z="2" yaw="0" model="vehicle.lincoln.mkz_2017" rolename="hero2"/>
     <ego_vehicle x="-365.6455078125" y="26.686376571655273" z="2" yaw="0" model="vehicle.lincoln.mkz_2017" rolename="hero3"/> -->
+    <ego_vehicle x="-370.6455078125" y="26.686376571655273" z="2" yaw="0" model="vehicle.lincoln.mkz_2017" rolename="hero4"/> -->
     
 	<!-- <ego_vehicle x="-93" y="41" z="9" yaw="150" model="vehicle.lincoln.mkz_2017" rolename="hero"/> -->
     
