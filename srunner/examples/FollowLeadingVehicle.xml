@@ -29,16 +29,13 @@
     </scenario>	
 
     <scenario name="FollowLeadingVehicle_5" type="FollowLeadingVehicle" town="Town04">
-	<ego_vehicle x="-350.6455078125" y="26.686376571655273" z="2" yaw="0" model="vehicle.lincoln.mkz_2017" rolename="hero"/>
-    <ego_vehicle x="-355.6455078125" y="26.686376571655273" z="2" yaw="0" model="vehicle.lincoln.mkz_2017" rolename="hero1"/>
-    <ego_vehicle x="-360.6455078125" y="26.686376571655273" z="2" yaw="0" model="vehicle.lincoln.mkz_2017" rolename="hero2"/>
-    <ego_vehicle x="-365.6455078125" y="26.686376571655273" z="2" yaw="0" model="vehicle.lincoln.mkz_2017" rolename="hero3"/> -->
-    <ego_vehicle x="-370.6455078125" y="26.686376571655273" z="2" yaw="0" model="vehicle.lincoln.mkz_2017" rolename="hero4"/> -->
-    
-	<!-- <ego_vehicle x="-93" y="41" z="9" yaw="150" model="vehicle.lincoln.mkz_2017" rolename="hero"/> -->
-    
-    <!-- <ego_vehicle x="291" y="-188" z="0.319" yaw="180" model="vehicle.lincoln.mkz_2017" rolename="hero"/> -->
-	<weather cloudiness="0" precipitation="0" precipitation_deposits="0" wind_intensity="0" sun_azimuth_angle="0" sun_altitude_angle="75" />
+	<!-- <ego_vehicle x="-379.6" y="-25.6" z="2" yaw="90" model="vehicle.lincoln.mkz_2017" rolename="hero"/> -->
+	<ego_vehicle x="-406.2" y="26.6" z="2" yaw="0" model="vehicle.lincoln.mkz_2017" rolename="hero"/>
+    <ego_vehicle x="-414.5" y="30.3" z="2" yaw="0" model="vehicle.lincoln.mkz_2017" rolename="hero1"/>
+    <ego_vehicle x="-421.6455078125" y="33.9686376571655273" z="2" yaw="0" model="vehicle.lincoln.mkz_2017" rolename="hero2"/>
+    <ego_vehicle x="-428.6455078125" y="37.286376571655273" z="2" yaw="0" model="vehicle.lincoln.mkz_2017" rolename="hero3"/> -->
+    <ego_vehicle x="-435.6455078125" y="37.286376571655273" z="2" yaw="0" model="vehicle.lincoln.mkz_2017" rolename="hero4"/> -->
+	<weather cloudiness="90" precipitation="40" precipitation_deposits="0" wind_intensity="0" sun_azimuth_angle="0" sun_altitude_angle="75" />
     </scenario>
 
     <scenario name="FollowLeadingVehicleWithObstacle_5" type="FollowLeadingVehicleWithObstacle" town="Town04">
