@@ -1,5 +1,5 @@
 import carla
-LEAD_VEHICLE_SPEED = 18  #mps
+LEAD_VEHICLE_SPEED = 17  #mps
 LEAD_X_INIT = -379.6
 LEAD_Y_INIT = -17.6
 LEAD_Z_INIT = 2.0

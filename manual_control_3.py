@@ -228,9 +228,11 @@ class KeyboardControl(object):
         world.hud.notification("Press 'H' or '?' for help.", seconds=4.0)
         self.iter = 0
         self.wayPoints = []
+        self.wayPoints2 = []
+
         self.world= world
         self._map = self.world.world.get_map()
-        self._controller = PIDLateralController(self.world.player, K_P=1.0, K_I=0.0, K_D=0.0)
+        self._controller = PIDLateralController(self.world.player, K_P=1.0, K_I=2.0, K_D=0.1)
         self._longitudinalControl = PIDLongitudinalController(self.world.player, K_P=1.0, K_I=0.0, K_D=0.0)
         self.kP = 1.0
         self.kI = 0.0
@@ -389,17 +391,17 @@ class KeyboardControl(object):
         # print("intervehicleDist : "+str(dist))
 
         
-        print("Lead Speed = {}, EGO Speed = {}, Inter Distance = {}".format(leadVehicleVelocity,currentEgoVelocity,dist))   
+        # print("Lead Speed = {}, EGO Speed = {}, Inter Distance = {}".format(leadVehicleVelocity,currentEgoVelocity,dist))   
         if (dist>DesiredinterVehicleDist and dist<DesiredinterVehicleDist+5):
             acceleration = self._longitudinalControl.run_step(leadVehicleVelocity, currentEgoVelocity)
             if acceleration >= 0:
                 self._control.throttle = min(acceleration, 0.7)
                 self._control.brake = 0
-                print("Trying to throttle....",self._control.throttle)
+                # print("Trying to throttle....",self._control.throttle)
             else:
                 self._control.throttle = 0
                 self._control.brake = min(abs(acceleration), 1)
-                print("Trying to Break.....",self._control.brake)
+                # print("Trying to Break.....",self._control.brake)
 
         else:
             dt = 0.02
@@ -417,7 +419,7 @@ class KeyboardControl(object):
                 self._control.brake = 0.0
             elif (dist < (DesiredinterVehicleDist+5.0)):
                 """Brake"""
-                print("[Distance PID Control]::BRAKE!!!!!!!!!!!!",rst,dist)
+                # print("[Distance PID Control]::BRAKE!!!!!!!!!!!!",rst,dist)
                 # print("Lead Vehicle Speed = {} and Current Vehicle Speed = {}".format(leadVehicleVelocity,currentEgoVelocity.x*KMPH))   
                 acceleration = self._longitudinalControl.run_step(leadVehicleVelocity, currentEgoVelocity)
                 if acceleration >= 0:
@@ -426,36 +428,67 @@ class KeyboardControl(object):
                 else:
                     self._control.throttle = 0
                     self._control.brake = 1.0
-                # throttle_output = 0.0
-                # self._control.brake = min(abs(np.tanh(rst)), 1.0)
-                # self._control.throttle = 0.0
-        
-        # currentEgoLocation = self.world.player
-        # print(currentEgoLocation.id)
-
+                    
+            
         waypoint = self._map.get_waypoint(self.leadVehicleLocation.get_location())
+        waypoint.transform.location.x = round(waypoint.transform.location.x,1)
+        waypoint.transform.location.y = round(waypoint.transform.location.y,1)
+        waypoint.transform.location.z = round(waypoint.transform.location.z,1)
+
         egoWaypoint = self._map.get_waypoint(follow_vehicle.get_location())
+        egoWaypoint.transform.location.x = round(egoWaypoint.transform.location.x,1)
+        egoWaypoint.transform.location.y = round(egoWaypoint.transform.location.y,1)
+        egoWaypoint.transform.location.z = round(egoWaypoint.transform.location.z,1)
         
+        # print("Waypoint:",waypoint)
         if self.iter == 0:
             self.wayPoints.append(waypoint)
+            self.wayPoints2.append(waypoint)
         self.iter = self.iter + 1
                 
         # append waypoints only if they are greater than a set threshold distance       
-        if (self._euclideanDist(self.wayPoints[-1], waypoint) > 3.0):
+        if (self._euclideanDist(self.wayPoints[-1], waypoint) > 9.0):
             self.wayPoints.append(waypoint)
+
+        if (self._euclideanDist(self.wayPoints[-1], waypoint) > 1.0):
+            self.wayPoints2.append(waypoint)
         
         # steer
-        self._control.steer = self._controller.run_step(self.wayPoints[0])
+        
+        first_x, first_y = self.wayPoints[0].transform.location.x, self.wayPoints[0].transform.location.y
+        mid_x, mid_y = self.wayPoints[int(len(self.wayPoints)/2)].transform.location.x, self.wayPoints[int(len(self.wayPoints)/2)].transform.location.y
+        last_x, last_y = self.wayPoints[-1].transform.location.x, self.wayPoints[-1].transform.location.y
 
+        angle_first_half = math.degrees(math.atan2(mid_y - first_y, mid_x - first_x))
+        angle_seconf_half = math.degrees(math.atan2(last_y - mid_y, last_x - mid_x))
+
+        if abs(angle_first_half-angle_seconf_half) > 5:
+            
+            self.CURVE_AHEAD = True
+        else:
+            self.CURVE_AHEAD = False
+
+        if self.CURVE_AHEAD and (currentEgoVelocity>30):
+            
+            self._control.throttle = max(self._control.throttle * abs(math.tanh(2/(abs(angle_first_half-angle_seconf_half)+0.001))),0.4)
+            print("CURVE AHEAD"+str(self._control.throttle))
+
+        if self.CURVE_AHEAD:
+            self._control.steer = self._controller.run_step(self.wayPoints[0])
+            print("Curve Steer: "+str(self._control.steer))
+
+        else:
+            self._control.steer = self._controller.run_step(self.wayPoints[0])
+            print("Straight Steer: "+str(self._control.steer))
 
         if (self._euclideanDist(self.wayPoints[0], egoWaypoint) <= 1.5):
             self.wayPoints.pop(0)
 
-        # for i in range(len(self.wayPoints)):
-            # print(str(i) + str("|") + str(self.wayPoints[i].transform.location.x) + str(",") + str(self.wayPoints[i].transform.location.y))
+        if (self._euclideanDist(self.wayPoints2[0], egoWaypoint) <= 1.5):
+            self.wayPoints2.pop(0)
 
-        # self.int_val = integral
         self.throttle_previous = self._control.throttle
+
     def _euclideanDist(self, waypoint1, waypoint2):
         return np.sqrt((waypoint2.transform.location.x - waypoint1.transform.location.x)**2 + (waypoint2.transform.location.y - waypoint1.transform.location.y)**2)
         
