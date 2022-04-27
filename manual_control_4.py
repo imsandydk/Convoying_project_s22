@@ -243,6 +243,7 @@ class KeyboardControl(object):
         self.last_error = 0.0
         vehicles = self.world.world.get_actors().filter('vehicle.*')
         self.leadVehicleLocation = None
+        time.sleep(2)
         for vehicle in vehicles:
             # print("Vehicle Id and player id === ",vehicle.id,vehicle.type_id,self.world.player.id)
             if vehicle.id == self.world.player.id-1:

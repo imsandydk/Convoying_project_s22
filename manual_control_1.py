@@ -243,6 +243,7 @@ class KeyboardControl(object):
         self.last_error = 0.0
         vehicles = self.world.world.get_actors().filter('vehicle.*')
         self.leadVehicleLocation = None
+        time.sleep(2)
         for vehicle in vehicles:
             # print("Vehicle Id and player id === ",vehicle.id,vehicle.type_id,self.world.player.id)
             if vehicle.id == self.world.player.id-1:
@@ -447,47 +448,52 @@ class KeyboardControl(object):
         self.iter = self.iter + 1
                 
         # append waypoints only if they are greater than a set threshold distance       
-        if (self._euclideanDist(self.wayPoints[-1], waypoint) > 9.0):
-            self.wayPoints.append(waypoint)
+        try:
+            if (self._euclideanDist(self.wayPoints[-1], waypoint) > 9.0):
+                self.wayPoints.append(waypoint)
 
-        if (self._euclideanDist(self.wayPoints[-1], waypoint) > 1.0):
-            self.wayPoints2.append(waypoint)
+            if (self._euclideanDist(self.wayPoints[-1], waypoint) > 1.0):
+                self.wayPoints2.append(waypoint)
+        
         
         # steer
         
-        first_x, first_y = self.wayPoints[0].transform.location.x, self.wayPoints[0].transform.location.y
-        mid_x, mid_y = self.wayPoints[int(len(self.wayPoints)/2)].transform.location.x, self.wayPoints[int(len(self.wayPoints)/2)].transform.location.y
-        last_x, last_y = self.wayPoints[-1].transform.location.x, self.wayPoints[-1].transform.location.y
+            first_x, first_y = self.wayPoints[0].transform.location.x, self.wayPoints[0].transform.location.y
+            mid_x, mid_y = self.wayPoints[int(len(self.wayPoints)/2)].transform.location.x, self.wayPoints[int(len(self.wayPoints)/2)].transform.location.y
+            last_x, last_y = self.wayPoints[-1].transform.location.x, self.wayPoints[-1].transform.location.y
 
-        angle_first_half = math.degrees(math.atan2(mid_y - first_y, mid_x - first_x))
-        angle_seconf_half = math.degrees(math.atan2(last_y - mid_y, last_x - mid_x))
+            angle_first_half = math.degrees(math.atan2(mid_y - first_y, mid_x - first_x))
+            angle_seconf_half = math.degrees(math.atan2(last_y - mid_y, last_x - mid_x))
 
-        if abs(angle_first_half-angle_seconf_half) > 5:
-            
-            self.CURVE_AHEAD = True
-        else:
-            self.CURVE_AHEAD = False
+            if abs(angle_first_half-angle_seconf_half) > 5:
+                
+                self.CURVE_AHEAD = True
+            else:
+                self.CURVE_AHEAD = False
 
-        if self.CURVE_AHEAD and (currentEgoVelocity>30):
-            
-            self._control.throttle = max(self._control.throttle * abs(math.tanh(2/(abs(angle_first_half-angle_seconf_half)+0.001))),0.4)
-            print("CURVE AHEAD"+str(self._control.throttle))
+            if self.CURVE_AHEAD and (currentEgoVelocity>30):
+                
+                self._control.throttle = max(self._control.throttle * abs(math.tanh(2/(abs(angle_first_half-angle_seconf_half)+0.001))),0.4)
+                print("CURVE AHEAD"+str(self._control.throttle))
 
-        if self.CURVE_AHEAD:
-            self._control.steer = self._controller.run_step(self.wayPoints[0])
-            print("Curve Steer: "+str(self._control.steer))
+            if self.CURVE_AHEAD:
+                self._control.steer = self._controller.run_step(self.wayPoints[0])
+                print("Curve Steer: "+str(self._control.steer))
 
-        else:
-            self._control.steer = self._controller.run_step(self.wayPoints[0])
-            print("Straight Steer: "+str(self._control.steer))
+            else:
+                self._control.steer = self._controller.run_step(self.wayPoints[0])
+                print("Straight Steer: "+str(self._control.steer))
 
-        if (self._euclideanDist(self.wayPoints[0], egoWaypoint) <= 1.5):
-            self.wayPoints.pop(0)
+            if (self._euclideanDist(self.wayPoints[0], egoWaypoint) <= 1.5):
+                self.wayPoints.pop(0)
 
-        if (self._euclideanDist(self.wayPoints2[0], egoWaypoint) <= 1.5):
-            self.wayPoints2.pop(0)
+            if (self._euclideanDist(self.wayPoints2[0], egoWaypoint) <= 1.5):
+                self.wayPoints2.pop(0)
 
-        self.throttle_previous = self._control.throttle
+            self.throttle_previous = self._control.throttle
+        except:
+            print("Error in Waypointxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+            pass
 
     def _euclideanDist(self, waypoint1, waypoint2):
         return np.sqrt((waypoint2.transform.location.x - waypoint1.transform.location.x)**2 + (waypoint2.transform.location.y - waypoint1.transform.location.y)**2)
