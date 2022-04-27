@@ -61,6 +61,7 @@ import logging
 import math
 import weakref
 import copy
+import srunner.scenarios.configuration as configuration
 
 
 try:
@@ -238,6 +239,16 @@ class KeyboardControl(object):
         self.throttle_previous = 0.0
         self.int_val = 0.0
         self.last_error = 0.0
+        vehicles = self.world.world.get_actors().filter('vehicle.*')
+        self.leadVehicleLocation = None
+        for vehicle in vehicles:
+            # print("Vehicle Id and player id === ",vehicle.id,vehicle.type_id,self.world.player.id)
+            if vehicle.id == self.world.player.id-1:
+                print("Lead Vehicle Found... Hurray!")
+                self.leadVehicleLocation = vehicle
+            else:
+                print("Vehicle Id and player id === ",vehicle.id,vehicle.type_id,self.world.player.id)
+                print("ERROR: Vehicle not found")
 
     def parse_events(self, client, world, clock):
         current_lights = self._lights
@@ -360,101 +371,90 @@ class KeyboardControl(object):
 
 
         # time.sleep(1)
-        DesiredinterVehicleDist = 20.0
-        MAX_SPEED_ALLOWED = 65
+        DesiredinterVehicleDist = 30.0
+        MAX_SPEED_ALLOWED = configuration.LEAD_VEHICLE_SPEED * 3.6 + 5
 
         follow_vehicle = self.world.player
-        currentEgoLocation = self.world.player.get_transform()
-        currentEgoVelocity = self.world.player.get_velocity()
+        currentEgoLocation = follow_vehicle.get_transform()
+        
        
-        
+       
         #get lead vehicle location
-        vehicles = self.world.world.get_actors().filter('vehicle.*')
-        for vehicle in vehicles:
-            # print("Vehicle Id and player id === ",vehicle.id,vehicle.type_id,self.world.player.id)
-            if vehicle.id == self.world.player.id-1:
-                print("Lead Vehicle Found... Hurray!")
-                leadVehicleLocation = vehicle
-            else:
-                print("Vehicle Id and player id === ",vehicle.id,vehicle.type_id,self.world.player.id)
-
-        leadVehicleVelocity = leadVehicleLocation.get_velocity().x*3.6
-
-        dist = np.sqrt((leadVehicleLocation.get_location().x - currentEgoLocation.location.x)**2 + (leadVehicleLocation.get_location().y - currentEgoLocation.location.y)**2+(leadVehicleLocation.get_location().z - currentEgoLocation.location.z)**2)
-        # print("intervehicleDist : "+str(dist))
-      
-        acceleration = self._longitudinalControl.run_step(DesiredinterVehicleDist, dist)
-        dt = 0.03
-
-        #error term
-        eDist = dist - DesiredinterVehicleDist
-        print("error in dist: "+ str(eDist))
-        print("intervehicle dist: "+str(dist))
-        #integral term
-        integral = self.int_val + eDist * dt
-        print("integral: "+ str(integral))
-        # derviative term
-        derivate = (eDist - self.last_error)/dt
-
-        rst = self.kP*eDist + self.kI*integral + self.kD*derivate
         
-        print("rst="+str(rst))
+        KMPH = 3.6
+        leadVehicleVelocity = np.sqrt(self.leadVehicleLocation.get_velocity().x**2 + self.leadVehicleLocation.get_velocity().y**2 )*KMPH
+        currentEgoVelocity = np.sqrt(follow_vehicle.get_velocity().x**2 + follow_vehicle.get_velocity().y**2 )*KMPH
 
-        if leadVehicleVelocity > 0.1:
+        dist = np.sqrt((self.leadVehicleLocation.get_location().x - currentEgoLocation.location.x)**2 + (self.leadVehicleLocation.get_location().y - currentEgoLocation.location.y)**2+(self.leadVehicleLocation.get_location().z - currentEgoLocation.location.z)**2)
+        # print("intervehicleDist : "+str(dist))
+
+        
+        print("Lead Speed = {}, EGO Speed = {}, Inter Distance = {}".format(leadVehicleVelocity,currentEgoVelocity,dist))   
+        if (dist>DesiredinterVehicleDist and dist<DesiredinterVehicleDist+5):
+            acceleration = self._longitudinalControl.run_step(leadVehicleVelocity, currentEgoVelocity)
+            if acceleration >= 0:
+                self._control.throttle = min(acceleration, 0.7)
+                self._control.brake = 0
+                print("Trying to throttle....",self._control.throttle)
+            else:
+                self._control.throttle = 0
+                self._control.brake = min(abs(acceleration), 1)
+                print("Trying to Break.....",self._control.brake)
+
+        else:
+            dt = 0.02
+            eDist = dist - DesiredinterVehicleDist
+            derivate = (eDist - self.last_error)/dt
+            rst = self.kP*eDist + self.kD*derivate
             if (rst > 0):
+                """Accelerate"""
+                # print("[Distance PID Control]::Accelerate",currentEgoVelocity.x)
                 throttle_output = np.tanh(rst)
-                throttle_output = max(0.0, min(0.75, throttle_output))
+                throttle_output = max(0.0, min(0.9, throttle_output))
                 if throttle_output - self.throttle_previous > 0.1:
                     throttle_output = self.throttle_previous + 0.1
                 self._control.throttle = throttle_output
                 self._control.brake = 0.0
-            else:
-                throttle_output = 0.0
-                self._control.brake = min(abs(np.tanh(rst)), 0.3)
-                self._control.throttle = 0.0
-        else:
-            self._control.throttle = 0.4
+            elif (dist < (DesiredinterVehicleDist+5.0)):
+                """Brake"""
+                print("[Distance PID Control]::BRAKE!!!!!!!!!!!!",rst,dist)
+                # print("Lead Vehicle Speed = {} and Current Vehicle Speed = {}".format(leadVehicleVelocity,currentEgoVelocity.x*KMPH))   
+                acceleration = self._longitudinalControl.run_step(leadVehicleVelocity, currentEgoVelocity)
+                if acceleration >= 0:
+                    self._control.throttle = min(acceleration, 0.8)
+                    self._control.brake = 0
+                else:
+                    self._control.throttle = 0
+                    self._control.brake = 1.0
+                # throttle_output = 0.0
+                # self._control.brake = min(abs(np.tanh(rst)), 1.0)
+                # self._control.throttle = 0.0
         
-        print("throttle = "+str(self._control.throttle))
-        print("brake = "+str(self._control.brake))
+        # currentEgoLocation = self.world.player
+        # print(currentEgoLocation.id)
 
-        currentEgoVelocity = self.world.player.get_velocity()
-        
-        velocity_diff = MAX_SPEED_ALLOWED-(3.6 * math.sqrt(currentEgoVelocity.x**2 + currentEgoVelocity.y**2 + currentEgoVelocity.z**2))
-
-        if velocity_diff < -5:
-            self._control.throttle = 0
-        
-        #get current vehicle location
-        currentEgoLocation = self.world.player
-        print(currentEgoLocation.id)
-        currentEgoVelocity = self.world.player.get_velocity().x   
-
-        leadVehicleLocationX = leadVehicleLocation.get_transform().location.x
-        leadVehicleLocationY = leadVehicleLocation.get_transform().location.y
-        
-        waypoint = self._map.get_waypoint(leadVehicleLocation.get_location())
-        egoWaypoint = self._map.get_waypoint(currentEgoLocation.get_location())
+        waypoint = self._map.get_waypoint(self.leadVehicleLocation.get_location())
+        egoWaypoint = self._map.get_waypoint(follow_vehicle.get_location())
         
         if self.iter == 0:
             self.wayPoints.append(waypoint)
         self.iter = self.iter + 1
                 
         # append waypoints only if they are greater than a set threshold distance       
-        if (self._euclideanDist(self.wayPoints[-1], waypoint) > 5.0):
+        if (self._euclideanDist(self.wayPoints[-1], waypoint) > 3.0):
             self.wayPoints.append(waypoint)
         
         # steer
         self._control.steer = self._controller.run_step(self.wayPoints[0])
 
 
-        if (self._euclideanDist(self.wayPoints[0], egoWaypoint) <= 1.0):
+        if (self._euclideanDist(self.wayPoints[0], egoWaypoint) <= 1.5):
             self.wayPoints.pop(0)
 
-        for i in range(len(self.wayPoints)):
-            print(str(i) + str("|") + str(self.wayPoints[i].transform.location.x) + str(",") + str(self.wayPoints[i].transform.location.y))
+        # for i in range(len(self.wayPoints)):
+            # print(str(i) + str("|") + str(self.wayPoints[i].transform.location.x) + str(",") + str(self.wayPoints[i].transform.location.y))
 
-        self.int_val = integral
+        # self.int_val = integral
         self.throttle_previous = self._control.throttle
     def _euclideanDist(self, waypoint1, waypoint2):
         return np.sqrt((waypoint2.transform.location.x - waypoint1.transform.location.x)**2 + (waypoint2.transform.location.y - waypoint1.transform.location.y)**2)

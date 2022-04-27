@@ -43,7 +43,7 @@ from srunner.tools.scenario_helper import get_waypoint_in_distance
 from srunner.tools.background_manager import Scenario2Manager
 from srunner.tools.route_parser import RouteParser
 from srunner.tools.route_manipulation import interpolate_trajectory, interpolate_trajectory_modified
-import srunner.scenarios.DATA as INIT_DATA
+import srunner.scenarios.configuration as configuration
 
 
 
@@ -70,26 +70,20 @@ class FollowLeadingVehicle(BasicScenario):
         self.world = world
         route_configurations = RouteParser.parse_routes_file(routes, scenario_file, route_id)
         traj = route_configurations[0].trajectory
-        print("traj....XXXXXXXXXXXXXXXXX:",traj)
+
+        route_dummy = [carla.libcarla.Location(x=-379.6, y=-17.6, z=0),carla.libcarla.Location(x=-379.1, y=22.8, z=0)]
+        inter_route_dummy = interpolate_trajectory_modified(world, route_dummy)
         route0 = [carla.libcarla.Location(x=-379.6, y=-17.6, z=0),carla.libcarla.Location(x=-379.1, y=22.8, z=0),traj[0]]
-
         inter_route_0 = interpolate_trajectory_modified(world,route0)
+
         inter_route = interpolate_trajectory_modified(world,traj)
-        route2 = [traj[-1]]
-        route2.append(carla.libcarla.Location(x=403.56, y=-205.61, z=0))
-        route2.append(carla.libcarla.Location(x=403.56, y=-216.3, z=0))
-        route2.append(carla.libcarla.Location(x=357.6, y=-342.2, z=0))
-        # last_waypoint.append(carla.libcarla.Location(x=250.0, y=-385.7, z=0))
-
+        route2 = [traj[-1],carla.libcarla.Location(x=403.56, y=-205.61, z=0),carla.libcarla.Location(x=403.56, y=-216.3, z=0),carla.libcarla.Location(x=357.6, y=-342.2, z=0)]
         inter_route_2 = interpolate_trajectory_modified(world,route2)
-        route3 = [route2[-1]]
-        # route3.append(carla.libcarla.Location(x=250.0, y=-385.7, z=0))
-        route3.append(carla.libcarla.Location(x=152.3, y=-385.7, z=0))
-
+        
+        route3 = [route2[-1],carla.libcarla.Location(x=152.3, y=-385.7, z=0)]
         inter_route_3 = interpolate_trajectory_modified(world,route3)
 
-        route4 = [route3[-1]]
-        route4.append(carla.libcarla.Location(x=62.5, y=-354.5, z=0))
+        route4 = [route3[-1],carla.libcarla.Location(x=62.5, y=-354.5, z=0)]
         inter_route_4 = interpolate_trajectory_modified(world,route4)
 
         route5 = [route4[-1]]
@@ -97,24 +91,24 @@ class FollowLeadingVehicle(BasicScenario):
         inter_route_5 = interpolate_trajectory_modified(world,route5)
 
         route6 = [route5[-1]]
-        route6.append(carla.libcarla.Location(x=-9.3, y=-15.1, z=0))
-        route6.append(carla.libcarla.Location(x=-12.4, y=31.1, z=0))
+        # route6.append(carla.libcarla.Location(x=-9.3, y=-15.1, z=0))
+        route6.append(carla.libcarla.Location(x=-5.4, y=80.0, z=0))
         inter_route_6 = interpolate_trajectory_modified(world,route6)
 
         route7 = [route6[-1]]
         route7.append(carla.libcarla.Location(x=-49.0, y=141.8, z=0))
         inter_route_7 = interpolate_trajectory_modified(world,route7)
 
-
         print("inter_route1:",inter_route[-1],len(inter_route))
-        inter_route_comb = inter_route_0 + inter_route + inter_route_2 + inter_route_3 + inter_route_4 + inter_route_5 + inter_route_6 + inter_route_7
+        inter_route_comb = inter_route_0 + inter_route + inter_route_2 + inter_route_3 + inter_route_4 + inter_route_5 + inter_route_6 #+ inter_route_7
+        # inter_route_comb = inter_route_dummy
         self.trajectory_leadVehicle = inter_route_comb
-        self.init_trajectory_leadVehicle = interpolate_trajectory_modified(world,INIT_DATA.INIT_ROUTE)
+        self.init_trajectory_leadVehicle = interpolate_trajectory_modified(world,configuration.INIT_ROUTE)
 
 
         self._map = CarlaDataProvider.get_map()
         self._first_vehicle_location = 20
-        self._first_vehicle_speed = 25
+        self._first_vehicle_speed = configuration.LEAD_VEHICLE_SPEED
         self._reference_waypoint = self._map.get_waypoint(config.trigger_points[0].location)
         self._other_actor_max_brake = 1.0
         self._other_actor_stop_in_front_intersection = 20
@@ -148,9 +142,9 @@ class FollowLeadingVehicle(BasicScenario):
         transform = waypoint.transform
         print("transform:",transform)
         # breakpoint()
-        transform.location.x = INIT_DATA.LEAD_X_INIT
-        transform.location.y = INIT_DATA.LEAD_Y_INIT
-        transform.location.z = INIT_DATA.LEAD_Z_INIT
+        transform.location.x = configuration.LEAD_X_INIT
+        transform.location.y = configuration.LEAD_Y_INIT
+        transform.location.z = configuration.LEAD_Z_INIT
         transform.rotation.yaw = 100
         first_vehicle = CarlaDataProvider.request_new_actor('vehicle.nissan.patrol', transform)
         # WaypointFollower(first_vehicle, self._first_vehicle_speed, plan=self.init_trajectory_leadVehicle)
