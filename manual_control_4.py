@@ -232,7 +232,7 @@ class KeyboardControl(object):
 
         self.world= world
         self._map = self.world.world.get_map()
-        self._controller = PIDLateralController(self.world.player, K_P=1.0, K_I=2.0, K_D=0.1)
+        self._controller = PIDLateralController(self.world.player, K_P=1.0, K_I=1.0, K_D=0.1)
         self._longitudinalControl = PIDLongitudinalController(self.world.player, K_P=1.0, K_I=0.0, K_D=0.0)
         self.kP = 1.0
         self.kI = 0.0
@@ -243,7 +243,7 @@ class KeyboardControl(object):
         self.last_error = 0.0
         vehicles = self.world.world.get_actors().filter('vehicle.*')
         self.leadVehicleLocation = None
-        time.sleep(2)
+        time.sleep(6)
         for vehicle in vehicles:
             # print("Vehicle Id and player id === ",vehicle.id,vehicle.type_id,self.world.player.id)
             if vehicle.id == self.world.player.id-1:
@@ -448,7 +448,7 @@ class KeyboardControl(object):
         self.iter = self.iter + 1
                 
         # append waypoints only if they are greater than a set threshold distance       
-        if (self._euclideanDist(self.wayPoints[-1], waypoint) > 9.0):
+        if (self._euclideanDist(self.wayPoints[-1], waypoint) > configuration.BUFFER_LEN):
             self.wayPoints.append(waypoint)
 
         if (self._euclideanDist(self.wayPoints[-1], waypoint) > 1.0):
@@ -469,9 +469,9 @@ class KeyboardControl(object):
         else:
             self.CURVE_AHEAD = False
 
-        if self.CURVE_AHEAD and (currentEgoVelocity>30):
+        if self.CURVE_AHEAD and (currentEgoVelocity>40):
             
-            self._control.throttle = max(self._control.throttle * abs(math.tanh(2/(abs(angle_first_half-angle_seconf_half)+0.001))),0.4)
+            self._control.throttle = max(self._control.throttle * abs(math.tanh(2/(abs(angle_first_half-angle_seconf_half)+0.001))),0.5)
             print("CURVE AHEAD"+str(self._control.throttle))
 
         if self.CURVE_AHEAD:

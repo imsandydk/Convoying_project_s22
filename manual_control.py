@@ -367,6 +367,18 @@ class KeyboardControl(object):
                 self._lights = current_lights
                 world.player.set_light_state(carla.VehicleLightState(self._lights))
             world.player.apply_control(self._control)
+    
+    def isInConvoyCreation(self, location):
+        if (location.get_location().x > -381 and location.get_location().x < -365 and location.get_location().y > -20 and location.get_location().y < 29):
+            return True
+        else:
+            return False
+    
+    def isInConvoyDestination(self, location):
+        if (location.get_location().x > -124 and location.get_location().x < -1 and location.get_location().y > 64 and location.get_location().y < 250):
+            return True
+        else:
+            return False
 
     def _parse_vehicle_keys(self, keys, milliseconds):
 
@@ -385,10 +397,16 @@ class KeyboardControl(object):
         dist = np.sqrt((self.leadVehicleLocation.get_location().x - currentEgoLocation.location.x)**2 + (self.leadVehicleLocation.get_location().y - currentEgoLocation.location.y)**2+(self.leadVehicleLocation.get_location().z - currentEgoLocation.location.z)**2)
         # print("intervehicleDist : "+str(dist))
 
-        if(self.leadVehicleLocation.get_location().x > -381 and self.leadVehicleLocation.get_location().x < -365 and self.leadVehicleLocation.get_location().y > -20 and self.leadVehicleLocation.get_location().y < 29):
+        if(self.isInConvoyCreation(self.leadVehicleLocation)):
             """Convoy Creation"""
-            self._control.throttle = 0.5
-            # print("Initial Throttle: "+str(self._control.throttle))
+            self._control.throttle = 0.4
+
+        elif(self.isInConvoyDestination(self.leadVehicleLocation)):
+            """Convoy Destination"""
+            print("Convoy Destination XXXXXXXXXXX")
+            self._control.throttle = 0.0
+            self._control.brake = 0.7
+
         else:
             # print("Lead Speed = {}, EGO Speed = {}, Inter Distance = {}".format(leadVehicleVelocity,currentEgoVelocity,dist))   
             if (dist>DesiredinterVehicleDist and dist<DesiredinterVehicleDist+5):
@@ -446,10 +464,10 @@ class KeyboardControl(object):
             self.iter = self.iter + 1
                     
             # append waypoints only if they are greater than a set threshold distance       
-            if (self._euclideanDist(self.wayPoints[-1], waypoint) > 9.0):
+            if (self._euclideanDist(self.wayPoints[-1], waypoint) > configuration.BUFFER_LEN):
                 self.wayPoints.append(waypoint)
 
-            if (self._euclideanDist(self.wayPoints[-1], waypoint) > 1.0):
+            if (self._euclideanDist(self.wayPoints2[-1], waypoint) > 1.0):
                 self.wayPoints2.append(waypoint)
             
             # steer
@@ -1038,7 +1056,7 @@ def game_loop(args):
 
         clock = pygame.time.Clock()
         while True:
-            clock.tick_busy_loop(60)
+            clock.tick_busy_loop(120)
             if controller.parse_events(client, world, clock):
                 return
             if not world.tick(clock):

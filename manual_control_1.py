@@ -449,7 +449,7 @@ class KeyboardControl(object):
                 
         # append waypoints only if they are greater than a set threshold distance       
         try:
-            if (self._euclideanDist(self.wayPoints[-1], waypoint) > 9.0):
+            if (self._euclideanDist(self.wayPoints[-1], waypoint) > configuration.BUFFER_LEN):
                 self.wayPoints.append(waypoint)
 
             if (self._euclideanDist(self.wayPoints[-1], waypoint) > 1.0):

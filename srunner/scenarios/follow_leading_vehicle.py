@@ -92,7 +92,7 @@ class FollowLeadingVehicle(BasicScenario):
 
         route6 = [route5[-1]]
         # route6.append(carla.libcarla.Location(x=-9.3, y=-15.1, z=0))
-        route6.append(carla.libcarla.Location(x=-5.4, y=80.0, z=0))
+        route6.append(carla.libcarla.Location(x=-5.4, y=40.0, z=0))
         inter_route_6 = interpolate_trajectory_modified(world,route6)
 
         route7 = [route6[-1]]
@@ -100,7 +100,7 @@ class FollowLeadingVehicle(BasicScenario):
         inter_route_7 = interpolate_trajectory_modified(world,route7)
 
         print("inter_route1:",inter_route[-1],len(inter_route))
-        inter_route_comb = inter_route_0 + inter_route + inter_route_2 + inter_route_3 + inter_route_4 + inter_route_5 + inter_route_6 #+ inter_route_7
+        inter_route_comb = inter_route_0 + inter_route + inter_route_2 + inter_route_3 + inter_route_4 + inter_route_5 + inter_route_6 + inter_route_7
         # inter_route_comb = inter_route_dummy
         self.trajectory_leadVehicle = inter_route_comb
         self.init_trajectory_leadVehicle = interpolate_trajectory_modified(world,configuration.INIT_ROUTE)
