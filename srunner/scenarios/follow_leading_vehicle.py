@@ -105,6 +105,10 @@ class FollowLeadingVehicle(BasicScenario):
         self.trajectory_leadVehicle = inter_route_comb
         self.init_trajectory_leadVehicle = interpolate_trajectory_modified(world,config_init.INIT_ROUTE)
 
+        with open("distance.txt", 'r+') as f:
+            f.truncate(0)
+
+
 
         self._map = CarlaDataProvider.get_map()
         self._first_vehicle_location = 20

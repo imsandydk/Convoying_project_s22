@@ -3,8 +3,6 @@ import argparse
 import sys
 import config
 
-subprocess.run("python3 manual_control.py --convoy 6 & python3 manual_control_1.py --convoy 6 & python3 manual_control_2.py --convoy 6 --res 320x240 & python3 manual_control_3.py --convoy 6 & python3 manual_control_4.py --convoy 6", shell=True)
-
 def main():
     parser = argparse.ArgumentParser(description='Run the specified test')
     parser.add_argument('--convoy', default=2,type=int,help='The test to run')
@@ -21,5 +19,5 @@ def main():
         subprocess.run("python3 manual_control.py --convoy 6 & python3 manual_control_1.py --convoy 6 & python3 manual_control_2.py --convoy 6 --res 320x240 & python3 manual_control_3.py --convoy 6 & python3 manual_control_4.py --convoy 6", shell=True)
 
 
-# if __name__ == "__main__":
-#     sys.exit(main())    
+if __name__ == "__main__":
+    sys.exit(main())    

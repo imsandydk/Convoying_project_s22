@@ -43,7 +43,10 @@ Use ARROWS or WASD keys for control.
 """
 
 from __future__ import print_function
+from asyncore import write
 from cmath import sqrt
+from tkinter import X
+from csv import writer
 
 # ==============================================================================
 # -- imports -------------------------------------------------------------------
@@ -452,14 +455,7 @@ class KeyboardControl(object):
                     
             
             waypoint = self._map.get_waypoint(self.leadVehicleLocation.get_location())
-            waypoint.transform.location.x = round(waypoint.transform.location.x,1)
-            waypoint.transform.location.y = round(waypoint.transform.location.y,1)
-            waypoint.transform.location.z = round(waypoint.transform.location.z,1)
-
             egoWaypoint = self._map.get_waypoint(follow_vehicle.get_location())
-            egoWaypoint.transform.location.x = round(egoWaypoint.transform.location.x,1)
-            egoWaypoint.transform.location.y = round(egoWaypoint.transform.location.y,1)
-            egoWaypoint.transform.location.z = round(egoWaypoint.transform.location.z,1)
             
             print("Waypoint:",waypoint)
             if self.iter == 0:
@@ -484,13 +480,11 @@ class KeyboardControl(object):
             angle_seconf_half = math.degrees(math.atan2(last_y - mid_y, last_x - mid_x))
 
             if abs(angle_first_half-angle_seconf_half) > 5:
-                
                 self.CURVE_AHEAD = True
             else:
                 self.CURVE_AHEAD = False
 
             if self.CURVE_AHEAD and (currentEgoVelocity>30):
-                
                 self._control.throttle = max(self._control.throttle * abs(math.tanh(2/(abs(angle_first_half-angle_seconf_half)+0.001))),0.4)
                 print("CURVE AHEAD"+str(self._control.throttle))
 
@@ -509,6 +503,38 @@ class KeyboardControl(object):
                 self.wayPoints2.pop(0)
 
             self.throttle_previous = self._control.throttle
+
+            x_y_list = []
+
+            for vehicle in self.world.world.get_actors().filter('vehicle.*'):
+                x_y_list.append((vehicle.get_transform().location.x, vehicle.get_transform().location.y))
+
+            dist = []
+
+            for i in range(len(x_y_list)):
+                if i == 0:
+                    continue
+                dist.append(self._inter_distance(x_y_list[i], x_y_list[i-1]))
+
+            with open('distance.txt', 'a') as f:
+                
+                writer_object = writer(f)
+
+                writer_object.writerow(dist)
+
+                f.close()
+
+            
+
+
+
+                
+    def _inter_distance(self, waypoint1, waypoint2):
+        """
+        Calculate the distance between two waypoints
+        """
+        return math.sqrt((waypoint1[0] - waypoint2[0])**2 + (waypoint1[1] - waypoint2[1])**2)
+
 
     def _euclideanDist(self, waypoint1, waypoint2):
         return np.sqrt((waypoint2.transform.location.x - waypoint1.transform.location.x)**2 + (waypoint2.transform.location.y - waypoint1.transform.location.y)**2)
