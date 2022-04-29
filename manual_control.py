@@ -45,7 +45,6 @@ Use ARROWS or WASD keys for control.
 from __future__ import print_function
 from asyncore import write
 from cmath import sqrt
-from tkinter import X
 from csv import writer
 
 # ==============================================================================
@@ -501,13 +500,18 @@ class KeyboardControl(object):
 
             if (self._euclideanDist(self.wayPoints2[0], egoWaypoint) <= 1.5):
                 self.wayPoints2.pop(0)
-
+            if config.SPEED_REG == True:
+                    if currentEgoVelocity>70:
+                        self._control.throttle = 0
+                        self._control.brake = 0.3
             self.throttle_previous = self._control.throttle
 
             x_y_list = []
 
             for vehicle in self.world.world.get_actors().filter('vehicle.*'):
                 x_y_list.append((vehicle.get_transform().location.x, vehicle.get_transform().location.y))
+            fe = x_y_list.pop(0)
+            x_y_list.append(fe)    
 
             dist = []
 
