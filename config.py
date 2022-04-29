@@ -1,5 +1,5 @@
 import carla
-LEAD_VEHICLE_SPEED = 68  #mph
+LEAD_VEHICLE_SPEED = 37  #mph 
 LEAD_X_INIT = -379.6
 LEAD_Y_INIT = -17.6
 LEAD_Z_INIT = 2.0
@@ -8,7 +8,7 @@ LEAD_Y_INIT_END = 0
 LEAD_Z_INIT_END = 2.0
 INIT_ROUTE = [carla.libcarla.Location(x=LEAD_X_INIT, y=LEAD_Y_INIT, z=0),carla.libcarla.Location(x=LEAD_X_INIT_END, y=LEAD_Y_INIT_END, z=0)]
 convoy = None
-SPEED_REG = False
+SPEED_REG = True
 def get_convoy_config(convoy_len):
     print("convoy_len:",convoy_len)
     if convoy_len == 2:
@@ -18,7 +18,7 @@ def get_convoy_config(convoy_len):
             'KI': 1.0,
             'KD': 0.1,
             'distance_to_stop': 30,
-            'max_speed': 130
+            'max_speed': 100
         }
     elif convoy_len == 3:
         convoy = {
@@ -27,7 +27,7 @@ def get_convoy_config(convoy_len):
             'KI': 1.0,
             'KD': 0.1,
             'distance_to_stop': 30,
-            'max_speed': 130
+            'max_speed': 80
         }
     elif convoy_len == 4:
         convoy = {

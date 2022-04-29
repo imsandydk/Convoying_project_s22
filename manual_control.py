@@ -506,15 +506,17 @@ class KeyboardControl(object):
             if (self._euclideanDist(self.wayPoints2[0], egoWaypoint) <= 1.5):
                 self.wayPoints2.pop(0)
             if config.SPEED_REG == True:
-                    if currentEgoVelocity>70:
+                    if currentEgoVelocity>self._config['max_speed']:
                         self._control.throttle = 0
                         self._control.brake = 0.3
             self.throttle_previous = self._control.throttle
 
             x_y_list = []
+            speed_list = []
 
             for vehicle in self.world.world.get_actors().filter('vehicle.*'):
                 x_y_list.append((vehicle.get_transform().location.x, vehicle.get_transform().location.y))
+                speed_list.append(np.sqrt(vehicle.get_velocity().x**2 + vehicle.get_velocity().y**2 )*KMPH)
             fe = x_y_list.pop(0)
             x_y_list.append(fe)    
 
@@ -530,6 +532,14 @@ class KeyboardControl(object):
                 writer_object = writer(f)
 
                 writer_object.writerow(dist)
+
+                f.close()
+
+            with open('speed.txt', 'a') as f:
+                
+                writer_object = writer(f)
+
+                writer_object.writerow(speed_list)
 
                 f.close()
 

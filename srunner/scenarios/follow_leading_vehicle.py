@@ -108,6 +108,11 @@ class FollowLeadingVehicle(BasicScenario):
         with open("distance.txt", 'r+') as f:
             f.truncate(0)
 
+        with open("speed.txt", 'r+') as f:
+            f.truncate(0)
+
+        
+
 
 
         self._map = CarlaDataProvider.get_map()
@@ -233,9 +238,9 @@ class FollowLeadingVehicleWithObstacle(BasicScenario):
         """
         self._map = CarlaDataProvider.get_map()
         self._first_actor_location = 10
-        self._second_actor_location = self._first_actor_location + 41
+        self._second_actor_location = self._first_actor_location + 200
         self._first_actor_speed = 10
-        self._second_actor_speed = 1.5
+        self._second_actor_speed = 3
         self._reference_waypoint = self._map.get_waypoint(config.trigger_points[0].location)
         self._other_actor_max_brake = 1.0
         self._first_actor_transform = None
