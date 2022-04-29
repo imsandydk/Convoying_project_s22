@@ -43,7 +43,7 @@ from srunner.tools.scenario_helper import get_waypoint_in_distance
 from srunner.tools.background_manager import Scenario2Manager
 from srunner.tools.route_parser import RouteParser
 from srunner.tools.route_manipulation import interpolate_trajectory, interpolate_trajectory_modified
-import srunner.scenarios.configuration as configuration
+import config as config_init
 
 
 
@@ -103,12 +103,12 @@ class FollowLeadingVehicle(BasicScenario):
         inter_route_comb = inter_route_0 + inter_route + inter_route_2 + inter_route_3 + inter_route_4 + inter_route_5 + inter_route_6 + inter_route_7
         # inter_route_comb = inter_route_dummy
         self.trajectory_leadVehicle = inter_route_comb
-        self.init_trajectory_leadVehicle = interpolate_trajectory_modified(world,configuration.INIT_ROUTE)
+        self.init_trajectory_leadVehicle = interpolate_trajectory_modified(world,config_init.INIT_ROUTE)
 
 
         self._map = CarlaDataProvider.get_map()
         self._first_vehicle_location = 20
-        self._first_vehicle_speed = configuration.LEAD_VEHICLE_SPEED
+        self._first_vehicle_speed = config_init.LEAD_VEHICLE_SPEED
         self._reference_waypoint = self._map.get_waypoint(config.trigger_points[0].location)
         self._other_actor_max_brake = 1.0
         self._other_actor_stop_in_front_intersection = 20
@@ -142,9 +142,9 @@ class FollowLeadingVehicle(BasicScenario):
         transform = waypoint.transform
         print("transform:",transform)
         # breakpoint()
-        transform.location.x = configuration.LEAD_X_INIT
-        transform.location.y = configuration.LEAD_Y_INIT
-        transform.location.z = configuration.LEAD_Z_INIT
+        transform.location.x = config_init.LEAD_X_INIT
+        transform.location.y = config_init.LEAD_Y_INIT
+        transform.location.z = config_init.LEAD_Z_INIT
         transform.rotation.yaw = 100
         first_vehicle = CarlaDataProvider.request_new_actor('vehicle.nissan.patrol', transform)
         # WaypointFollower(first_vehicle, self._first_vehicle_speed, plan=self.init_trajectory_leadVehicle)

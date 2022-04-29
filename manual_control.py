@@ -62,7 +62,7 @@ import logging
 import math
 import weakref
 import copy
-import srunner.scenarios.configuration as configuration
+import config as config
 
 
 
@@ -122,6 +122,7 @@ class World(object):
     restarted = False
 
     def __init__(self, carla_world, hud, args):
+        print("Initializing world...")
         self.world = carla_world
         try:
             self.map = self.world.get_map()
@@ -218,11 +219,14 @@ class World(object):
 
 class KeyboardControl(object):
     """Class that handles keyboard input."""
-    def __init__(self, world, start_in_autopilot):
+    def __init__(self, world, start_in_autopilot, convoy_num = 2):
         self._autopilot_enabled = start_in_autopilot
         self._control = carla.VehicleControl()
         self._lights = carla.VehicleLightState.NONE
         self._steer_cache = 0.0
+        self._convoy_num = convoy_num
+        self._config = config.get_convoy_config(self._convoy_num)
+        print("Convoy config: ", self._config['distance_to_stop'])
         world.player.set_autopilot(self._autopilot_enabled)
         world.player.set_light_state(self._lights)
         world.hud.notification("Press 'H' or '?' for help.", seconds=4.0)
@@ -231,7 +235,7 @@ class KeyboardControl(object):
         self.wayPoints2 = []
         self.world= world
         self._map = self.world.world.get_map()
-        self._controller = PIDLateralController(self.world.player, K_P=1.0, K_I=1.0, K_D=0.1)
+        self._controller = PIDLateralController(self.world.player, K_P=self._config['KP'], K_I=self._config['KI'], K_D=self._config['KD'])   # Make KI 2 for High Speed
         self._longitudinalControl = PIDLongitudinalController(self.world.player, K_P=1.0, K_I=0.0, K_D=0.0)
         self.kP = 1.0
         self.kI = 0.0
@@ -384,8 +388,7 @@ class KeyboardControl(object):
 
 
         # time.sleep(1)
-        DesiredinterVehicleDist = 30.0
-        MAX_SPEED_ALLOWED = configuration.LEAD_VEHICLE_SPEED * 3.6 + 5
+        DesiredinterVehicleDist = self._config['distance_to_stop']
 
         follow_vehicle = self.world.player
         currentEgoLocation = follow_vehicle.get_transform()
@@ -406,6 +409,7 @@ class KeyboardControl(object):
             print("Convoy Destination XXXXXXXXXXX")
             self._control.throttle = 0.0
             self._control.brake = 0.7
+            self._control.steer = 0.0
 
         else:
             # print("Lead Speed = {}, EGO Speed = {}, Inter Distance = {}".format(leadVehicleVelocity,currentEgoVelocity,dist))   
@@ -464,7 +468,7 @@ class KeyboardControl(object):
             self.iter = self.iter + 1
                     
             # append waypoints only if they are greater than a set threshold distance       
-            if (self._euclideanDist(self.wayPoints[-1], waypoint) > configuration.BUFFER_LEN):
+            if (self._euclideanDist(self.wayPoints[-1], waypoint) > self._config['buffer_len']):
                 self.wayPoints.append(waypoint)
 
             if (self._euclideanDist(self.wayPoints2[-1], waypoint) > 1.0):
@@ -1050,7 +1054,7 @@ def game_loop(args):
 
         hud = HUD(args.width, args.height)
         world = World(sim_world, hud, args)
-        controller = KeyboardControl(world, args.autopilot)
+        controller = KeyboardControl(world, args.autopilot,args.convoy)
 
         sim_world.wait_for_tick()
 
@@ -1120,6 +1124,28 @@ def main():
         '--keep_ego_vehicle',
         action='store_true',
         help='do not destroy ego vehicle on exit')
+    argparser.add_argument(
+        '--convoy',
+        type=int,
+        default=2,
+        help='Convoy Length')
+    args = argparser.parse_args()
+
+    args.width, args.height = [int(x) for x in args.res.split('x')]
+
+    log_level = logging.DEBUG if args.debug else logging.INFO
+    logging.basicConfig(format='%(levelname)s: %(message)s', level=log_level)
+
+    logging.info('listening to server %s:%s', args.host, args.port)
+
+    print(__doc__)
+
+    try:
+
+        game_loop(args)
+
+    except KeyboardInterrupt:
+        print('\nCancelled by user. Bye!')
     args = argparser.parse_args()
 
     args.width, args.height = [int(x) for x in args.res.split('x')]

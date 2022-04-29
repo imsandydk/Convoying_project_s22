@@ -61,7 +61,7 @@ import logging
 import math
 import weakref
 import copy
-import srunner.scenarios.configuration as configuration
+import config as config
 
 
 try:
@@ -218,11 +218,13 @@ class World(object):
 
 class KeyboardControl(object):
     """Class that handles keyboard input."""
-    def __init__(self, world, start_in_autopilot):
+    def __init__(self, world, start_in_autopilot, convoy_num = 2):
         self._autopilot_enabled = start_in_autopilot
         self._control = carla.VehicleControl()
         self._lights = carla.VehicleLightState.NONE
         self._steer_cache = 0.0
+        self._convoy_num = convoy_num
+        self._config = config.get_convoy_config(self._convoy_num)
         world.player.set_autopilot(self._autopilot_enabled)
         world.player.set_light_state(self._lights)
         world.hud.notification("Press 'H' or '?' for help.", seconds=4.0)
@@ -232,7 +234,7 @@ class KeyboardControl(object):
 
         self.world= world
         self._map = self.world.world.get_map()
-        self._controller = PIDLateralController(self.world.player, K_P=1.0, K_I=1.0, K_D=0.1)
+        self._controller = PIDLateralController(self.world.player, K_P=self._config['KP'], K_I=self._config['KI'], K_D=self._config['KD'])   # Make KI 2 for High Speed
         self._longitudinalControl = PIDLongitudinalController(self.world.player, K_P=1.0, K_I=0.0, K_D=0.0)
         self.kP = 1.0
         self.kI = 0.0
@@ -243,7 +245,7 @@ class KeyboardControl(object):
         self.last_error = 0.0
         vehicles = self.world.world.get_actors().filter('vehicle.*')
         self.leadVehicleLocation = None
-        time.sleep(6)
+        time.sleep(8)
         for vehicle in vehicles:
             # print("Vehicle Id and player id === ",vehicle.id,vehicle.type_id,self.world.player.id)
             if vehicle.id == self.world.player.id-1:
@@ -370,17 +372,20 @@ class KeyboardControl(object):
                 world.player.set_light_state(carla.VehicleLightState(self._lights))
             world.player.apply_control(self._control)
 
+    def isInConvoyDestination(self, location):
+        if (location.get_location().x > -124 and location.get_location().x < -1 and location.get_location().y > 64 and location.get_location().y < 250):
+            return True
+        else:
+            return False
+
     def _parse_vehicle_keys(self, keys, milliseconds):
 
 
         # time.sleep(1)
-        DesiredinterVehicleDist = 30.0
-        MAX_SPEED_ALLOWED = configuration.LEAD_VEHICLE_SPEED * 3.6 + 5
+        DesiredinterVehicleDist = self._config['distance_to_stop']
 
         follow_vehicle = self.world.player
         currentEgoLocation = follow_vehicle.get_transform()
-        
-       
        
         #get lead vehicle location
         
@@ -391,104 +396,116 @@ class KeyboardControl(object):
         dist = np.sqrt((self.leadVehicleLocation.get_location().x - currentEgoLocation.location.x)**2 + (self.leadVehicleLocation.get_location().y - currentEgoLocation.location.y)**2+(self.leadVehicleLocation.get_location().z - currentEgoLocation.location.z)**2)
         # print("intervehicleDist : "+str(dist))
 
-        
-        # print("Lead Speed = {}, EGO Speed = {}, Inter Distance = {}".format(leadVehicleVelocity,currentEgoVelocity,dist))   
-        if (dist>DesiredinterVehicleDist and dist<DesiredinterVehicleDist+5):
-            acceleration = self._longitudinalControl.run_step(leadVehicleVelocity, currentEgoVelocity)
-            if acceleration >= 0:
-                self._control.throttle = min(acceleration, 0.7)
-                self._control.brake = 0
-                # print("Trying to throttle....",self._control.throttle)
-            else:
-                self._control.throttle = 0
-                self._control.brake = min(abs(acceleration), 1)
-                # print("Trying to Break.....",self._control.brake)
+        if(self.isInConvoyDestination(self.leadVehicleLocation)):
+            """Convoy Destination"""
+            print("Convoy Destination XXXXXXXXXXX")
+            self._control.throttle = 0.0
+            self._control.brake = 0.7
+            self._control.steer = 0.2
 
         else:
-            dt = 0.02
-            eDist = dist - DesiredinterVehicleDist
-            derivate = (eDist - self.last_error)/dt
-            rst = self.kP*eDist + self.kD*derivate
-            if (rst > 0):
-                """Accelerate"""
-                # print("[Distance PID Control]::Accelerate",currentEgoVelocity.x)
-                throttle_output = np.tanh(rst)
-                throttle_output = max(0.0, min(0.9, throttle_output))
-                if throttle_output - self.throttle_previous > 0.1:
-                    throttle_output = self.throttle_previous + 0.1
-                self._control.throttle = throttle_output
-                self._control.brake = 0.0
-            elif (dist < (DesiredinterVehicleDist+5.0)):
-                """Brake"""
-                # print("[Distance PID Control]::BRAKE!!!!!!!!!!!!",rst,dist)
-                # print("Lead Vehicle Speed = {} and Current Vehicle Speed = {}".format(leadVehicleVelocity,currentEgoVelocity.x*KMPH))   
+        # print("Lead Speed = {}, EGO Speed = {}, Inter Distance = {}".format(leadVehicleVelocity,currentEgoVelocity,dist))   
+            if (dist>DesiredinterVehicleDist and dist<DesiredinterVehicleDist+5):
                 acceleration = self._longitudinalControl.run_step(leadVehicleVelocity, currentEgoVelocity)
                 if acceleration >= 0:
-                    self._control.throttle = min(acceleration, 0.8)
+                    self._control.throttle = min(acceleration, 0.7)
                     self._control.brake = 0
+                    # print("Trying to throttle....",self._control.throttle)
                 else:
                     self._control.throttle = 0
-                    self._control.brake = 1.0
-                    
-            
-        waypoint = self._map.get_waypoint(self.leadVehicleLocation.get_location())
-        waypoint.transform.location.x = round(waypoint.transform.location.x,1)
-        waypoint.transform.location.y = round(waypoint.transform.location.y,1)
-        waypoint.transform.location.z = round(waypoint.transform.location.z,1)
+                    self._control.brake = min(abs(acceleration), 1)
+                    # print("Trying to Break.....",self._control.brake)
 
-        egoWaypoint = self._map.get_waypoint(follow_vehicle.get_location())
-        egoWaypoint.transform.location.x = round(egoWaypoint.transform.location.x,1)
-        egoWaypoint.transform.location.y = round(egoWaypoint.transform.location.y,1)
-        egoWaypoint.transform.location.z = round(egoWaypoint.transform.location.z,1)
-        
-        # print("Waypoint:",waypoint)
-        if self.iter == 0:
-            self.wayPoints.append(waypoint)
-            self.wayPoints2.append(waypoint)
-        self.iter = self.iter + 1
+            else:
+                dt = 0.02
+                eDist = dist - DesiredinterVehicleDist
+                derivate = (eDist - self.last_error)/dt
+                rst = self.kP*eDist + self.kD*derivate
+                if (rst > 0):
+                    """Accelerate"""
+                    # print("[Distance PID Control]::Accelerate",currentEgoVelocity.x)
+                    throttle_output = np.tanh(rst)
+                    throttle_output = max(0.0, min(0.9, throttle_output))
+                    if throttle_output - self.throttle_previous > 0.1:
+                        throttle_output = self.throttle_previous + 0.1
+                    self._control.throttle = throttle_output
+                    self._control.brake = 0.0
+                elif (dist < (DesiredinterVehicleDist+5.0)):
+                    """Brake"""
+                    # print("[Distance PID Control]::BRAKE!!!!!!!!!!!!",rst,dist)
+                    # print("Lead Vehicle Speed = {} and Current Vehicle Speed = {}".format(leadVehicleVelocity,currentEgoVelocity.x*KMPH))   
+                    acceleration = self._longitudinalControl.run_step(leadVehicleVelocity, currentEgoVelocity)
+                    if acceleration >= 0:
+                        self._control.throttle = min(acceleration, 0.8)
+                        self._control.brake = 0
+                    else:
+                        self._control.throttle = 0
+                        self._control.brake = 1.0
+                        
                 
-        # append waypoints only if they are greater than a set threshold distance       
-        if (self._euclideanDist(self.wayPoints[-1], waypoint) > configuration.BUFFER_LEN):
-            self.wayPoints.append(waypoint)
+            waypoint = self._map.get_waypoint(self.leadVehicleLocation.get_location())
+            waypoint.transform.location.x = round(waypoint.transform.location.x,1)
+            waypoint.transform.location.y = round(waypoint.transform.location.y,1)
+            waypoint.transform.location.z = round(waypoint.transform.location.z,1)
 
-        if (self._euclideanDist(self.wayPoints[-1], waypoint) > 1.0):
-            self.wayPoints2.append(waypoint)
-        
-        # steer
-        
-        first_x, first_y = self.wayPoints[0].transform.location.x, self.wayPoints[0].transform.location.y
-        mid_x, mid_y = self.wayPoints[int(len(self.wayPoints)/2)].transform.location.x, self.wayPoints[int(len(self.wayPoints)/2)].transform.location.y
-        last_x, last_y = self.wayPoints[-1].transform.location.x, self.wayPoints[-1].transform.location.y
-
-        angle_first_half = math.degrees(math.atan2(mid_y - first_y, mid_x - first_x))
-        angle_seconf_half = math.degrees(math.atan2(last_y - mid_y, last_x - mid_x))
-
-        if abs(angle_first_half-angle_seconf_half) > 5:
+            egoWaypoint = self._map.get_waypoint(follow_vehicle.get_location())
+            egoWaypoint.transform.location.x = round(egoWaypoint.transform.location.x,1)
+            egoWaypoint.transform.location.y = round(egoWaypoint.transform.location.y,1)
+            egoWaypoint.transform.location.z = round(egoWaypoint.transform.location.z,1)
             
-            self.CURVE_AHEAD = True
-        else:
-            self.CURVE_AHEAD = False
+            # print("Waypoint:",waypoint)
+            if self.iter == 0:
+                self.wayPoints.append(waypoint)
+                self.wayPoints2.append(waypoint)
+            self.iter = self.iter + 1
+                    
+            # append waypoints only if they are greater than a set threshold distance       
+            try:
+                if (self._euclideanDist(self.wayPoints[-1], waypoint) > self._config['buffer_len']):
+                    self.wayPoints.append(waypoint)
 
-        if self.CURVE_AHEAD and (currentEgoVelocity>40):
+                if (self._euclideanDist(self.wayPoints[-1], waypoint) > 1.0):
+                    self.wayPoints2.append(waypoint)
             
-            self._control.throttle = max(self._control.throttle * abs(math.tanh(2/(abs(angle_first_half-angle_seconf_half)+0.001))),0.5)
-            print("CURVE AHEAD"+str(self._control.throttle))
+            
+            # steer
+            
+                first_x, first_y = self.wayPoints[0].transform.location.x, self.wayPoints[0].transform.location.y
+                mid_x, mid_y = self.wayPoints[int(len(self.wayPoints)/2)].transform.location.x, self.wayPoints[int(len(self.wayPoints)/2)].transform.location.y
+                last_x, last_y = self.wayPoints[-1].transform.location.x, self.wayPoints[-1].transform.location.y
 
-        if self.CURVE_AHEAD:
-            self._control.steer = self._controller.run_step(self.wayPoints[0])
-            print("Curve Steer: "+str(self._control.steer))
+                angle_first_half = math.degrees(math.atan2(mid_y - first_y, mid_x - first_x))
+                angle_seconf_half = math.degrees(math.atan2(last_y - mid_y, last_x - mid_x))
 
-        else:
-            self._control.steer = self._controller.run_step(self.wayPoints[0])
-            print("Straight Steer: "+str(self._control.steer))
+                if abs(angle_first_half-angle_seconf_half) > 5:
+                    
+                    self.CURVE_AHEAD = True
+                else:
+                    self.CURVE_AHEAD = False
 
-        if (self._euclideanDist(self.wayPoints[0], egoWaypoint) <= 1.5):
-            self.wayPoints.pop(0)
+                if self.CURVE_AHEAD and (currentEgoVelocity>30):
+                    
+                    self._control.throttle = max(self._control.throttle * abs(math.tanh(2/(abs(angle_first_half-angle_seconf_half)+0.001))),0.4)
+                    print("CURVE AHEAD"+str(self._control.throttle))
 
-        if (self._euclideanDist(self.wayPoints2[0], egoWaypoint) <= 1.5):
-            self.wayPoints2.pop(0)
+                if self.CURVE_AHEAD:
+                    self._control.steer = self._controller.run_step(self.wayPoints[0])
+                    print("Curve Steer: "+str(self._control.steer))
 
-        self.throttle_previous = self._control.throttle
+                else:
+                    self._control.steer = self._controller.run_step(self.wayPoints[0])
+                    print("Straight Steer: "+str(self._control.steer))
+
+                if (self._euclideanDist(self.wayPoints[0], egoWaypoint) <= 1.5):
+                    self.wayPoints.pop(0)
+
+                if (self._euclideanDist(self.wayPoints2[0], egoWaypoint) <= 1.5):
+                    self.wayPoints2.pop(0)
+
+                self.throttle_previous = self._control.throttle
+            except:
+                print("Error in Waypointxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+                pass
 
     def _euclideanDist(self, waypoint1, waypoint2):
         return np.sqrt((waypoint2.transform.location.x - waypoint1.transform.location.x)**2 + (waypoint2.transform.location.y - waypoint1.transform.location.y)**2)
@@ -1034,7 +1051,7 @@ def game_loop(args):
 
         hud = HUD(args.width, args.height)
         world = World(sim_world, hud, args)
-        controller = KeyboardControl(world, args.autopilot)
+        controller = KeyboardControl(world, args.autopilot, args.convoy)
 
         sim_world.wait_for_tick()
 
@@ -1104,6 +1121,11 @@ def main():
         '--keep_ego_vehicle',
         action='store_true',
         help='do not destroy ego vehicle on exit')
+    argparser.add_argument(
+        '--convoy',
+        type=int,
+        default=2,
+        help='Convoy Length')
     args = argparser.parse_args()
 
     args.width, args.height = [int(x) for x in args.res.split('x')]

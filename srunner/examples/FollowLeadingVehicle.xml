@@ -37,11 +37,11 @@
     <!-- <ego_vehicle x="-435.6455078125" y="37.286376571655273" z="2" yaw="0" model="vehicle.lincoln.mkz_2017" rolename="hero4"/> --> --> -->
 	
     
-    <ego_vehicle x="-406.2" y="26.6" z="2" yaw="0" model="vehicle.lincoln.mkz_2017" rolename="hero"/>
-    <ego_vehicle x="-416.5" y="29.6" z="2" yaw="0" model="vehicle.lincoln.mkz_2017" rolename="hero1"/>
-    <ego_vehicle x="-426.6455078125" y="32.6" z="2" yaw="0" model="vehicle.lincoln.mkz_2017" rolename="hero2"/>
-    <ego_vehicle x="-438.6455078125" y="35.6" z="2" yaw="0" model="vehicle.lincoln.mkz_2017" rolename="hero3"/>
-    <ego_vehicle x="-450.6455078125" y="37.6" z="2" yaw="0" model="vehicle.lincoln.mkz_2017" rolename="hero4"/>
+    <ego_vehicle x="-402.2" y="26.6" z="2" yaw="0" model="vehicle.lincoln.mkz_2017" rolename="hero"/>
+    <ego_vehicle x="-408.5" y="28.6" z="2" yaw="0" model="vehicle.lincoln.mkz_2017" rolename="hero1"/>
+    <ego_vehicle x="-415.6455078125" y="30.6" z="2" yaw="0" model="vehicle.lincoln.mkz_2017" rolename="hero2"/>
+    <ego_vehicle x="-423.6455078125" y="32.6" z="2" yaw="0" model="vehicle.lincoln.mkz_2017" rolename="hero3"/>
+    <ego_vehicle x="-431.6455078125" y="33.0" z="2" yaw="0" model="vehicle.lincoln.mkz_2017" rolename="hero4"/>
     
     <weather cloudiness="50" precipitation="40" precipitation_deposits="0" wind_intensity="0" sun_azimuth_angle="0" sun_altitude_angle="75" />
     </scenario>
