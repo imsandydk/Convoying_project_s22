@@ -112,7 +112,8 @@ class FollowLeadingVehicle(BasicScenario):
 
         self._map = CarlaDataProvider.get_map()
         self._first_vehicle_location = 20
-        self._first_vehicle_speed = config_init.LEAD_VEHICLE_SPEED
+        MPH_TO_MPS = 0.45
+        self._first_vehicle_speed = config_init.LEAD_VEHICLE_SPEED * MPH_TO_MPS
         self._reference_waypoint = self._map.get_waypoint(config.trigger_points[0].location)
         self._other_actor_max_brake = 1.0
         self._other_actor_stop_in_front_intersection = 20
@@ -270,7 +271,7 @@ class FollowLeadingVehicleWithObstacle(BasicScenario):
         second_actor_transform = carla.Transform(
             carla.Location(second_actor_waypoint.transform.location.x,
                            second_actor_waypoint.transform.location.y,
-                           second_actor_waypoint.transform.location.z - 500),
+                           second_actor_waypoint.transform.location.z ),
             carla.Rotation(second_actor_waypoint.transform.rotation.pitch, yaw_1,
                            second_actor_waypoint.transform.rotation.roll))
         self._second_actor_transform = carla.Transform(

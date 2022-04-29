@@ -408,11 +408,16 @@ class KeyboardControl(object):
 
         elif(self.isInConvoyDestination(self.leadVehicleLocation)):
             """Convoy Destination"""
-            print("Convoy Destination XXXXXXXXXXX")
-            self._control.throttle = 0.0
-            self._control.brake = 0.7
-            self._control.steer = 0.0
-
+            print("Convoy Destination XXXXXXXXXXX: "+str(self.iter))
+            self._control.throttle = 0.4
+            self._control.brake = 0.0
+            if self.iter < self.iter+20:
+                self._control.steer = 0.01
+            elif self.iter >=(self.iter+20) and self.iter<(self.iter+40):
+                self._control.steer = -0.01
+            else:
+                self._control.steer = 0.0
+            self.iter+=1
         else:
             # print("Lead Speed = {}, EGO Speed = {}, Inter Distance = {}".format(leadVehicleVelocity,currentEgoVelocity,dist))   
             if (dist>DesiredinterVehicleDist and dist<DesiredinterVehicleDist+5):

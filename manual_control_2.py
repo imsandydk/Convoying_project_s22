@@ -246,6 +246,7 @@ class KeyboardControl(object):
         vehicles = self.world.world.get_actors().filter('vehicle.*')
         self.leadVehicleLocation = None
         time.sleep(4)
+        self.iter = 0
         for vehicle in vehicles:
             # print("Vehicle Id and player id === ",vehicle.id,vehicle.type_id,self.world.player.id)
             if vehicle.id == self.world.player.id-1:
@@ -399,10 +400,14 @@ class KeyboardControl(object):
         if(self.isInConvoyDestination(self.leadVehicleLocation)):
             """Convoy Destination"""
             print("Convoy Destination XXXXXXXXXXX")
-            self._control.throttle = 0.0
-            self._control.brake = 0.7
-            self._control.steer = 0.2
-
+            self._control.throttle = 0.4
+            self._control.brake = 0.0
+            if self.iter < self.iter+20:
+                self._control.steer = 0.01
+            elif self.iter >= (self.iter+40.0) and self.iter<(self.iter+80.0):
+                self._control.steer = 0.01
+            else:
+                self._control.steer = 0.0
         else:
         # print("Lead Speed = {}, EGO Speed = {}, Inter Distance = {}".format(leadVehicleVelocity,currentEgoVelocity,dist))   
             if (dist>DesiredinterVehicleDist and dist<DesiredinterVehicleDist+5):
@@ -502,7 +507,7 @@ class KeyboardControl(object):
                 if (self._euclideanDist(self.wayPoints2[0], egoWaypoint) <= 1.5):
                     self.wayPoints2.pop(0)
                 if config.SPEED_REG == True:
-                    if currentEgoVelocity>70:
+                    if currentEgoVelocity>self._config['max_speed']:
                         self._control.throttle = 0
                         self._control.brake = 0.3
                 self.throttle_previous = self._control.throttle
